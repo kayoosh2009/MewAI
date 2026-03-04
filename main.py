@@ -271,23 +271,22 @@ def cmd_lang(message):
 
 @bot.message_handler(commands=['earn'])
 def cmd_earn(message):
-    uid = str(message.from_user.id)
+    uid = str(message.from_user.id) # Используем message, так как это хендлер команды
 
-markup = types.InlineKeyboardMarkup(row_width=1)
-markup.add(
-    types.InlineKeyboardButton(get_text(uid, "earn_btn_view"), callback_data="earn_view"), #
-    types.InlineKeyboardButton(get_text(uid, "earn_btn_react"), callback_data="earn_react"), #
-    types.InlineKeyboardButton(get_text(uid, "earn_btn_sub"), callback_data="earn_sub"), #
-    types.InlineKeyboardButton(get_text(uid, "earn_btn_apy"), callback_data="earn_apy") #
-)
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        types.InlineKeyboardButton(get_text(uid, "earn_btn_view"), callback_data="earn_view"),
+        types.InlineKeyboardButton(get_text(uid, "earn_btn_react"), callback_data="earn_react"),
+        types.InlineKeyboardButton(get_text(uid, "earn_btn_sub"), callback_data="earn_sub"),
+        types.InlineKeyboardButton(get_text(uid, "earn_btn_apy"), callback_data="earn_apy")
+    )
 
-# Заголовок сообщения тоже берем из базы
-bot.send_message(
-    message.chat.id, 
-    get_text(uid, "earn_menu_title"), 
-    reply_markup=markup, 
-    parse_mode="Markdown"
-)
+    bot.send_message(
+        message.chat.id, 
+        get_text(uid, "earn_menu_title"), 
+        reply_markup=markup, 
+        parse_mode="Markdown"
+    )
 
 
 
@@ -304,33 +303,27 @@ def handle_earn_all(call):
     # --- ЛОГИКА ПРОСМОТРА (ПЕРЕХОД) ---
     if action == "view":
         viewed = stats[uid].get('viewed_posts', [])
-        # Ищем первый пост из списка, который юзер еще не видел
         next_post = next((p for p in POSTS_LIST if p not in viewed), None)
 
         if not next_post:
-            uid = str(call.from_user.id)
             bot.answer_callback_query(call.id, get_text(uid, "all_posts_viewed"), show_alert=True)
             return
 
         idx = POSTS_LIST.index(next_post)
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        markup.add(
-        uid = str(call.from_user.id)
-
+        
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
             types.InlineKeyboardButton(get_text(uid, "btn_open_post"), url=next_post),
             types.InlineKeyboardButton(get_text(uid, "btn_confirm_view"), callback_data=f"earn_confirm_{idx}")
         )
 
-        # Переводим само сообщение инструкции
         bot.edit_message_text(
             get_text(uid, "view_instruction"), 
             call.message.chat.id, 
             call.message.message_id, 
             reply_markup=markup
         )
-        )
+
         # Извлекаем ID пользователя из объекта call
         uid = str(call.from_user.id)
 
@@ -769,34 +762,40 @@ def ai_message_handler(message):
 
         # 6. ФИНАЛЬНОЕ ОБНОВЛЕНИЕ
         final_text = full_response + f"\n\n💰 -{coins_to_deduct:.4f} 🪙"
-        bot.edit_message_text(final_text, message.chat.id, status_msg.message_id)
+        
+        try:
+            bot.edit_message_text(
+                chat_id=message.chat.id, 
+                message_id=status_msg.message_id, 
+                text=final_text, 
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            bot.edit_message_text(
+                chat_id=message.chat.id, 
+                message_id=status_msg.message_id, 
+                text=final_text
+            )
+            print(f"Ошибка Markdown: {e}")
 
         # Сохраняем ответ в историю
         user_history.append({'role': 'assistant', 'content': full_response})
         chats[uid] = user_history
         save_json('data/chats.json', chats)
 
-    except Exception as e:
+    except Exception as e:  # ЭТОТ БЛОК ОБЯЗАТЕЛЕН! Он закрывает самый первый try
         print(f"Ошибка ИИ: {e}")
-        bot.edit_message_text(get_text(uid, "ai_error"), message.chat.id, status_msg.message_id)
+        # Пытаемся отправить сообщение об ошибке пользователю
+        try:
+            bot.edit_message_text(
+                get_text(uid, "ai_error"), 
+                message.chat.id, 
+                status_msg.message_id
+            )
+        except:
+            pass
 
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-# ==========================================
-# ЗАПУСК
-# ==========================================
+# ЗАПУСК БОТА (вне функции handle_message)
 if __name__ == '__main__':
-    print(f"✅ MewAI (Telebot) успешно запущен!")
+    print("Бот запущен...")
     bot.infinity_polling()

@@ -1,13 +1,3 @@
-
- $$$$$$\  $$\ $$\         $$\                           $$\     
-$$  __$$\ $$ |$$ |        $$ |                          $$ |    
-$$ /  $$ |$$ |$$ |      $$$$$$\    $$$$$$\  $$\   $$\ $$$$$$\   
-$$$$$$$$ |$$ |$$ |      \_$$  _|  $$  __$$\ \$$\ $$  |\_$$  _|  
-$$  __$$ |$$ |$$ |        $$ |    $$$$$$$$ | \$$$$  /   $$ |    
-$$ |  $$ |$$ |$$ |        $$ |$$\ $$   ____| $$  $$<    $$ |$$\ 
-$$ |  $$ |$$ |$$ |        \$$$$  |\$$$$$$$\ $$  /\$$\   \$$$$  |
-\__|  \__|\__|\__|         \____/  \_______|\__/  \__|   \____/ 
-
 {
     "ru": {
         "start": "Привет! Я **MewAI** — твой персональный ИИ-помощник на базе Mew Cloud. 🐾\n\nЯ могу отвечать на вопросы, писать код и просто общаться. Выбери язык управления ниже:",
@@ -34,7 +24,7 @@ $$ |  $$ |$$ |$$ |        \$$$$  |\$$$$$$$\ $$  /\$$\   \$$$$  |
         "btn_open_post": "🔗 1. Открыть пост",
         "btn_confirm_view": "✅ 2. Подтвердить просмотр",
         "view_instruction": "Чтобы получить награду:\n1. Перейдите по ссылке\n2. Вернитесь в бота и нажмите подтверждение.",
-        "reward_view_success": "✅ +10 🪙 начислено!" },
+        "reward_view_success": "✅ +10 🪙 начислено!",
         "reward_already_claimed": "⚠️ Вы уже получили награду за этот пост.",
         "reward_credited": "✅ +{} монет начислено!",
         "react_instruction": "1. Перейдите по ссылке: {post_url}\n2. Поставьте реакцию.\n3. **Перешлите** пост мне сюда.",
@@ -53,7 +43,7 @@ $$ |  $$ |$$ |$$ |        \$$$$  |\$$$$$$$\ $$  /\$$\   \$$$$  |
         "repost_success": "✅ Пост принят! Начислено {} 🪙. Осталось на сегодня: {}",
         "repost_limit_daily": "❌ Лимит на сегодня исчерпан.",
         "repost_error_wrong_source": "❌ Этот пост не из нашего канала! Перешлите пост из @kayoosh_channel.",
-        "system_prompt": "Ты MewAI - твоя задача отвечать как можно точно на вопросы при это отвечать коротко и шутить с пользователем под его стиль, тебе запрещено использовать Markdown а так же таблицы и тп - максимально экономь текст но отвечай как можно эффективнее."
+        "system_prompt": "Ты MewAI - твоя задача отвечать как можно точно на вопросы при это отвечать коротко и шутить с пользователем под его стиль, тебе разрешенно использовать Markdown для ботов телеграм а так же таблицы и тп - максимально экономь текст но отвечай как можно эффективнее."
     },
     "en": {
         "start": "Hi! I am **MewAI** — your personal AI assistant powered by Ollama Cloud. 🐾\n\nI can answer questions, write code, and just chat. Choose your language below:",
@@ -99,6 +89,6 @@ $$ |  $$ |$$ |$$ |        \$$$$  |\$$$$$$$\ $$  /\$$\   \$$$$  |
         "repost_success": "✅ Post accepted! {} 🪙 credited. Remaining for today: {}",
         "repost_limit_daily": "❌ Daily limit has been reached.",
         "repost_error_wrong_source": "❌ This post is not from our channel! Forward a post from @kayoosh_channel.",
-        "system_prompt": "You are MewAI - your task is to answer questions as accurately as possible, while keeping your answers brief and humorous in the user's style. You are prohibited from using Markdown, tables, etc. - use as little text as possible, but answer as effectively as possible."
+        "system_prompt": "You are MewAI – your task is to answer questions as accurately as possible while keeping replies short and joking with the user in their style. You are allowed to use Markdown for Telegram bots, as well as tables and similar, but you should minimize text and answer as efficiently as possible."
     }
 }
