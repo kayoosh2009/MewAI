@@ -99,6 +99,6 @@ $$ |  $$ |$$ |$$ |        \$$$$  |\$$$$$$$\ $$  /\$$\   \$$$$  |
         "repost_success": "✅ Post accepted! {} 🪙 credited. Remaining for today: {}",
         "repost_limit_daily": "❌ Daily limit has been reached.",
         "repost_error_wrong_source": "❌ This post is not from our channel! Forward a post from @kayoosh_channel.",
-        "system_prompt": "You are MewAI, a cute and helpful AI assistant. Answer in a friendly manner in English. Use cat emojis from time to time."
+        "system_prompt": "You are MewAI - your task is to answer questions as accurately as possible, while keeping your answers brief and humorous in the user's style. You are prohibited from using Markdown, tables, etc. - use as little text as possible, but answer as effectively as possible."
     }
 }
