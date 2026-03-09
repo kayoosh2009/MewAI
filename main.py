@@ -26,11 +26,41 @@ bot = telebot.TeleBot(TOKEN)
 #pip install -r requirements.txt
 
 POSTS_LIST = [
-    "https://t.me/kayoosh_channel/284",
-    "https://t.me/kayoosh_channel/285",
-    "https://t.me/kayoosh_channel/286"
+    "https://t.me/kayoosh_channel/213", "https://t.me/kayoosh_channel/214", "https://t.me/kayoosh_channel/215",
+    "https://t.me/kayoosh_channel/216", "https://t.me/kayoosh_channel/217", "https://t.me/kayoosh_channel/218",
+    "https://t.me/kayoosh_channel/219", "https://t.me/kayoosh_channel/220", "https://t.me/kayoosh_channel/221",
+    "https://t.me/kayoosh_channel/222", "https://t.me/kayoosh_channel/223", "https://t.me/kayoosh_channel/224",
+    "https://t.me/kayoosh_channel/225", "https://t.me/kayoosh_channel/226", "https://t.me/kayoosh_channel/227",
+    "https://t.me/kayoosh_channel/228", "https://t.me/kayoosh_channel/229", "https://t.me/kayoosh_channel/230",
+    "https://t.me/kayoosh_channel/231", "https://t.me/kayoosh_channel/232", "https://t.me/kayoosh_channel/233",
+    "https://t.me/kayoosh_channel/234", "https://t.me/kayoosh_channel/235", "https://t.me/kayoosh_channel/236",
+    "https://t.me/kayoosh_channel/237", "https://t.me/kayoosh_channel/238", "https://t.me/kayoosh_channel/239",
+    "https://t.me/kayoosh_channel/240", "https://t.me/kayoosh_channel/241", "https://t.me/kayoosh_channel/242",
+    "https://t.me/kayoosh_channel/243", "https://t.me/kayoosh_channel/244", "https://t.me/kayoosh_channel/245",
+    "https://t.me/kayoosh_channel/246", "https://t.me/kayoosh_channel/247", "https://t.me/kayoosh_channel/248",
+    "https://t.me/kayoosh_channel/249", "https://t.me/kayoosh_channel/250", "https://t.me/kayoosh_channel/251",
+    "https://t.me/kayoosh_channel/252", "https://t.me/kayoosh_channel/253", "https://t.me/kayoosh_channel/254",
+    "https://t.me/kayoosh_channel/255", "https://t.me/kayoosh_channel/256", "https://t.me/kayoosh_channel/257",
+    "https://t.me/kayoosh_channel/258", "https://t.me/kayoosh_channel/259", "https://t.me/kayoosh_channel/260",
+    "https://t.me/kayoosh_channel/261", "https://t.me/kayoosh_channel/262", "https://t.me/kayoosh_channel/263",
+    "https://t.me/kayoosh_channel/264", "https://t.me/kayoosh_channel/265", "https://t.me/kayoosh_channel/266",
+    "https://t.me/kayoosh_channel/267", "https://t.me/kayoosh_channel/268", "https://t.me/kayoosh_channel/269",
+    "https://t.me/kayoosh_channel/270", "https://t.me/kayoosh_channel/271", "https://t.me/kayoosh_channel/272",
+    "https://t.me/kayoosh_channel/273", "https://t.me/kayoosh_channel/274", "https://t.me/kayoosh_channel/275",
+    "https://t.me/kayoosh_channel/276", "https://t.me/kayoosh_channel/277", "https://t.me/kayoosh_channel/278",
+    "https://t.me/kayoosh_channel/279", "https://t.me/kayoosh_channel/280", "https://t.me/kayoosh_channel/281",
+    "https://t.me/kayoosh_channel/282", "https://t.me/kayoosh_channel/283", "https://t.me/kayoosh_channel/284",
+    "https://t.me/kayoosh_channel/285", "https://t.me/kayoosh_channel/286", "https://t.me/kayoosh_channel/287",
+    "https://t.me/kayoosh_channel/288", "https://t.me/kayoosh_channel/289", "https://t.me/kayoosh_channel/290",
+    "https://t.me/kayoosh_channel/291", "https://t.me/kayoosh_channel/292", "https://t.me/kayoosh_channel/293",
+    "https://t.me/kayoosh_channel/294", "https://t.me/kayoosh_channel/295", "https://t.me/kayoosh_channel/296",
+    "https://t.me/kayoosh_channel/297", "https://t.me/kayoosh_channel/298", "https://t.me/kayoosh_channel/299",
+    "https://t.me/kayoosh_channel/300", "https://t.me/kayoosh_channel/301", "https://t.me/kayoosh_channel/302",
+    "https://t.me/kayoosh_channel/303", "https://t.me/kayoosh_channel/304", "https://t.me/kayoosh_channel/305",
+    "https://t.me/kayoosh_channel/306", "https://t.me/kayoosh_channel/307", "https://t.me/kayoosh_channel/308",
+    "https://t.me/kayoosh_channel/309", "https://t.me/kayoosh_channel/310", "https://t.me/kayoosh_channel/311",
+    "https://t.me/kayoosh_channel/312"
 ]
-
 
 
 
@@ -735,7 +765,7 @@ def ai_message_handler(message):
         messages_to_send = [system_msg] + user_history
 
         # Стриминг ответа
-        for part in ollama_client.chat('gpt-oss:120b', messages=messages_to_send, stream=True):
+        for part in ollama_client.chat('gemini-3-flash-preview:cloud', messages=messages_to_send, stream=True):
             chunk = part['message']['content']
             full_response += chunk
             
