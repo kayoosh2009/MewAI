@@ -58,8 +58,7 @@ POSTS_LIST = [
     "https://t.me/kayoosh_channel/300", "https://t.me/kayoosh_channel/301", "https://t.me/kayoosh_channel/302",
     "https://t.me/kayoosh_channel/303", "https://t.me/kayoosh_channel/304", "https://t.me/kayoosh_channel/305",
     "https://t.me/kayoosh_channel/306", "https://t.me/kayoosh_channel/307", "https://t.me/kayoosh_channel/308",
-    "https://t.me/kayoosh_channel/309", "https://t.me/kayoosh_channel/310", "https://t.me/kayoosh_channel/311",
-    "https://t.me/kayoosh_channel/312"
+    "https://t.me/kayoosh_channel/309", "https://t.me/kayoosh_channel/310", "https://t.me/kayoosh_channel/311"
 ]
 
 
