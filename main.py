@@ -26,7 +26,7 @@ bot = telebot.TeleBot(TOKEN)
 #pip install -r requirements.txt
 
 POSTS_LIST = [
-    "https://t.me/kayoosh_channel/213", "https://t.me/kayoosh_channel/214", "https://t.me/kayoosh_channel/215",
+    "https://t.me/kayoosh_channel/214", "https://t.me/kayoosh_channel/215",
     "https://t.me/kayoosh_channel/216", "https://t.me/kayoosh_channel/217", "https://t.me/kayoosh_channel/218",
     "https://t.me/kayoosh_channel/219", "https://t.me/kayoosh_channel/220", "https://t.me/kayoosh_channel/221",
     "https://t.me/kayoosh_channel/222", "https://t.me/kayoosh_channel/223", "https://t.me/kayoosh_channel/224",
