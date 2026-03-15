@@ -1,14 +1,5 @@
 
-#   $$\      $$\                          $$$$$$\  $$$$$$\ 
-#   $$$\    $$$ |                        $$  __$$\ \_$$  _|
-#   $$$$\  $$$$ | $$$$$$\  $$\  $$\  $$\ $$ /  $$ |  $$ |  
-#   $$\$$\$$ $$ |$$  __$$\ $$ | $$ | $$ |$$$$$$$$ |  $$ |  
-#   $$ \$$$  $$ |$$$$$$$$ |$$ | $$ | $$ |$$  __$$ |  $$ |  
-#   $$ |\$  /$$ |$$   ____|$$ | $$ | $$ |$$ |  $$ |  $$ |  
-#   $$ | \_/ $$ |\$$$$$$$\ \$$$$$\$$$$  |$$ |  $$ |$$$$$$\ 
-#   \__|     \__| \_______| \_____\____/ \__|  \__|\______|
-                                                       
-                                                       
+# <--------------- MewAI --------------->                                                     
 import os
 import telebot
 from telebot import types
@@ -26,62 +17,12 @@ bot = telebot.TeleBot(TOKEN)
 #pip install -r requirements.txt
 
 POSTS_LIST = [
-    "https://t.me/kayoosh_channel/213", "https://t.me/kayoosh_channel/214", "https://t.me/kayoosh_channel/215",
-    "https://t.me/kayoosh_channel/216", "https://t.me/kayoosh_channel/217", "https://t.me/kayoosh_channel/218",
-    "https://t.me/kayoosh_channel/219", "https://t.me/kayoosh_channel/220", "https://t.me/kayoosh_channel/221",
-    "https://t.me/kayoosh_channel/222", "https://t.me/kayoosh_channel/223", "https://t.me/kayoosh_channel/224",
-    "https://t.me/kayoosh_channel/225", "https://t.me/kayoosh_channel/226", "https://t.me/kayoosh_channel/227",
-    "https://t.me/kayoosh_channel/228", "https://t.me/kayoosh_channel/229", "https://t.me/kayoosh_channel/230",
-    "https://t.me/kayoosh_channel/231", "https://t.me/kayoosh_channel/232", "https://t.me/kayoosh_channel/233",
-    "https://t.me/kayoosh_channel/234", "https://t.me/kayoosh_channel/235", "https://t.me/kayoosh_channel/236",
-    "https://t.me/kayoosh_channel/237", "https://t.me/kayoosh_channel/238", "https://t.me/kayoosh_channel/239",
-    "https://t.me/kayoosh_channel/240", "https://t.me/kayoosh_channel/241", "https://t.me/kayoosh_channel/242",
-    "https://t.me/kayoosh_channel/243", "https://t.me/kayoosh_channel/244", "https://t.me/kayoosh_channel/245",
-    "https://t.me/kayoosh_channel/246", "https://t.me/kayoosh_channel/247", "https://t.me/kayoosh_channel/248",
-    "https://t.me/kayoosh_channel/249", "https://t.me/kayoosh_channel/250", "https://t.me/kayoosh_channel/251",
-    "https://t.me/kayoosh_channel/252", "https://t.me/kayoosh_channel/253", "https://t.me/kayoosh_channel/254",
-    "https://t.me/kayoosh_channel/255", "https://t.me/kayoosh_channel/256", "https://t.me/kayoosh_channel/257",
-    "https://t.me/kayoosh_channel/258", "https://t.me/kayoosh_channel/259", "https://t.me/kayoosh_channel/260",
-    "https://t.me/kayoosh_channel/261", "https://t.me/kayoosh_channel/262", "https://t.me/kayoosh_channel/263",
-    "https://t.me/kayoosh_channel/264", "https://t.me/kayoosh_channel/265", "https://t.me/kayoosh_channel/266",
-    "https://t.me/kayoosh_channel/267", "https://t.me/kayoosh_channel/268", "https://t.me/kayoosh_channel/269",
-    "https://t.me/kayoosh_channel/270", "https://t.me/kayoosh_channel/271", "https://t.me/kayoosh_channel/272",
-    "https://t.me/kayoosh_channel/273", "https://t.me/kayoosh_channel/274", "https://t.me/kayoosh_channel/275",
-    "https://t.me/kayoosh_channel/276", "https://t.me/kayoosh_channel/277", "https://t.me/kayoosh_channel/278",
-    "https://t.me/kayoosh_channel/279", "https://t.me/kayoosh_channel/280", "https://t.me/kayoosh_channel/281",
-    "https://t.me/kayoosh_channel/282", "https://t.me/kayoosh_channel/283", "https://t.me/kayoosh_channel/284",
-    "https://t.me/kayoosh_channel/285", "https://t.me/kayoosh_channel/286", "https://t.me/kayoosh_channel/287",
-    "https://t.me/kayoosh_channel/288", "https://t.me/kayoosh_channel/289", "https://t.me/kayoosh_channel/290",
-    "https://t.me/kayoosh_channel/291", "https://t.me/kayoosh_channel/292", "https://t.me/kayoosh_channel/293",
-    "https://t.me/kayoosh_channel/294", "https://t.me/kayoosh_channel/295", "https://t.me/kayoosh_channel/296",
-    "https://t.me/kayoosh_channel/297", "https://t.me/kayoosh_channel/298", "https://t.me/kayoosh_channel/299",
-    "https://t.me/kayoosh_channel/300", "https://t.me/kayoosh_channel/301", "https://t.me/kayoosh_channel/302",
-    "https://t.me/kayoosh_channel/303", "https://t.me/kayoosh_channel/304", "https://t.me/kayoosh_channel/305",
-    "https://t.me/kayoosh_channel/306", "https://t.me/kayoosh_channel/307", "https://t.me/kayoosh_channel/308",
-    "https://t.me/kayoosh_channel/309", "https://t.me/kayoosh_channel/310", "https://t.me/kayoosh_channel/311",
-    "https://t.me/kayoosh_channel/312"
+    "https://t.me/kayoosh_channel/213", "https://t.me/kayoosh_channel/214", "https://t.me/kayoosh_channel/215"
 ]
 
 
 
-
-
-
-
-
-
-
-
-#      \__$$ |                                                                      $$ |      
-#         $$ | $$$$$$$\  $$$$$$\  $$$$$$$\        $$\  $$\  $$\  $$$$$$\   $$$$$$\  $$ |  $$\ 
-#         $$ |$$  _____|$$  __$$\ $$  __$$\       $$ | $$ | $$ |$$  __$$\ $$  __$$\ $$ | $$  |
-#   $$\   $$ |\$$$$$$\  $$ /  $$ |$$ |  $$ |      $$ | $$ | $$ |$$ /  $$ |$$ |  \__|$$$$$$  / 
-#   $$ |  $$ | \____$$\ $$ |  $$ |$$ |  $$ |      $$ | $$ | $$ |$$ |  $$ |$$ |      $$  _$$<  
-#   \$$$$$$  |$$$$$$$  |\$$$$$$  |$$ |  $$ |      \$$$$$\$$$$  |\$$$$$$  |$$ |      $$ | \$$\ 
-#    \______/ \_______/  \______/ \__|  \__|       \_____\____/  \______/ \__|      \__|  \__|
-                                                                                          
-                                                                                          
-
+# <--------------- Json Logic --------------->  
 def load_json(path):
     # Автоматическое создание папки, если её нет
     folder = os.path.dirname(path)
@@ -128,31 +69,7 @@ def get_text(uid, key):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
- 
-
-#    $$$$$$\                                                                  $$\           
-#   $$  __$$\                                                                 $$ |          
-#   $$ /  \__| $$$$$$\  $$$$$$\$$$$\  $$$$$$\$$$$\   $$$$$$\  $$$$$$$\   $$$$$$$ | $$$$$$$\ 
-#   $$ |      $$  __$$\ $$  _$$  _$$\ $$  _$$  _$$\  \____$$\ $$  __$$\ $$  __$$ |$$  _____|
-#   $$ |      $$ /  $$ |$$ / $$ / $$ |$$ / $$ / $$ | $$$$$$$ |$$ |  $$ |$$ /  $$ |\$$$$$$\  
-#   $$ |  $$\ $$ |  $$ |$$ | $$ | $$ |$$ | $$ | $$ |$$  __$$ |$$ |  $$ |$$ |  $$ | \____$$\ 
-#   \$$$$$$  |\$$$$$$  |$$ | $$ | $$ |$$ | $$ | $$ |\$$$$$$$ |$$ |  $$ |\$$$$$$$ |$$$$$$$  |
-#    \______/  \______/ \__| \__| \__|\__| \__| \__| \_______|\__|  \__| \_______|\_______/ 
-                                                                                        
-                                                                                        
-                                                                                        
-
+# <--------------- Commands Logic --------------->  
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
     uid = str(message.from_user.id)
@@ -364,35 +281,26 @@ def handle_earn_all(call):
             reply_markup=markup
         )
 
-    # --- ЛОГИКА ПОДТВЕРЖДЕНИЯ ПРОСМОТРА ---
+    # <--------------- Логика просмотра постов --------------->
     elif action == "confirm":
+        uid = str(call.from_user.id)
         idx = int(call.data.split('_')[2])
         post_url = POSTS_LIST[idx]
         
-        if post_url not in stats[uid].get('viewed_posts', []):
+        # Инициализируем список, если его нет
+        if 'viewed_posts' not in stats[uid]:
+            stats[uid]['viewed_posts'] = []
+
+        if post_url not in stats[uid]['viewed_posts']:
             stats[uid]['balance'] += 10
-            stats[uid].setdefault('viewed_posts', []).append(post_url)
+            stats[uid]['viewed_posts'].append(post_url)
             save_json('data/stats.json', stats)
             
-            uid = str(call.from_user.id)
             bot.answer_callback_query(call.id, get_text(uid, "reward_view_success"), show_alert=True)
-            # Возвращаем пользователя в меню заданий
-            cmd_earn(call.message)
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            cmd_earn(call.message) # Возвращаем в меню
         else:
-            uid = str(call.from_user.id)
             bot.answer_callback_query(call.id, get_text(uid, "reward_already_claimed"), show_alert=True)
-
-    elif action == "confirm_view":
-        stats[uid]['balance'] += 10
-        save_json('data/stats.json', stats)
-        uid = str(call.from_user.id)
-        reward = 10  # Сумма награды
-
-        # Получаем шаблон текста и вставляем в него число
-        msg = get_text(uid, "reward_credited").format(reward)
-
-        bot.answer_callback_query(call.id, msg, show_alert=True)
-        bot.delete_message(call.message.chat.id, call.message.message_id)
 
     elif action == "react":
         uid = str(call.from_user.id)
@@ -407,6 +315,7 @@ def handle_earn_all(call):
             parse_mode="Markdown"
         )
 
+    # <--------------- Подписка на канал в замен на монетки --------------->
     elif action == "sub":
         try:
             member = bot.get_chat_member(channel_id, call.from_user.id)
@@ -455,53 +364,62 @@ def handle_earn_all(call):
                 get_text(uid, "error_admin_rights"), 
                 show_alert=True
             )
-
+    # <--------------- APY для заработка монет --------------->
     elif action == "apy":
-        uid = str(call.from_user.id)
-
-        # Получаем текст из JSON и выводим его
-        bot.send_message(
-            call.message.chat.id, 
-            get_text(uid, "apy_deposit_info"), 
-            parse_mode="Markdown"
-        )
-
+        def process_apy_step(message):
+            uid = str(message.from_user.id)
+            if not message.text.replace('.', '', 1).isdigit(): # Проверка, что это число
+                return bot.reply_to(message, get_text(uid, "error_invalid_number"))
+        msg = bot.send_message(call.message.chat.id, get_text(uid, "apy_deposit_info"), parse_mode="Markdown")
+        # Регистрируем следующий шаг, чтобы принять число
+        bot.register_next_step_handler(msg, process_apy_step)
 
 
 
-
-@bot.message_handler(func=lambda message: message.forward_from_chat is not None or message.forward_from is not None)
-def handle_forward_check(message):
+# <--------------- Логика репостов --------------->
+@bot.message_handler(func=lambda message: message.forward_from_chat is not None)
+def handle_forward(message):
     uid = str(message.from_user.id)
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
     
-    stats[uid].setdefault('daily_reposts_count', 0)
-    stats[uid].setdefault('last_repost_date', "")
+    # 1. Проверка регистрации
+    if uid not in stats:
+        bot.reply_to(message, get_text(uid, "start_needed"))
+        return
 
-    if stats[uid]['last_repost_date'] != today:
-        stats[uid]['daily_reposts_count'] = 0
-        stats[uid]['last_repost_date'] = today
+    # 2. ID твоего канала (убедись, что он верный)
+    MY_CHANNEL_ID = -1003414162996 
 
-    if stats[uid]['daily_reposts_count'] < 5:
-        stats[uid]['balance'] += 20
-        stats[uid]['daily_reposts_count'] += 1
-        save_json('data/stats.json', stats)
-        uid = str(message.from_user.id)
-        reward = 20
-        remaining = 5 - stats[uid].get('daily_reposts_count', 0)
+    # 3. Проверка: пост пришел именно из нужного канала?
+    if message.forward_from_chat.id == MY_CHANNEL_ID:
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        
+        # Инициализация полей лимитов, если их еще нет в stats.json
+        stats[uid].setdefault('daily_reposts_count', 0)
+        stats[uid].setdefault('last_repost_date', "")
 
-        # Берем перевод и подставляем значения
-        text = get_text(uid, "repost_success").format(reward, remaining)
+        # Сброс счетчика, если наступил новый день
+        if stats[uid]['last_repost_date'] != today:
+            stats[uid]['daily_reposts_count'] = 0
+            stats[uid]['last_repost_date'] = today
 
-        bot.reply_to(message, text)
+        # 4. Проверка лимита (например, 5 репостов в день)
+        if stats[uid]['daily_reposts_count'] < 5:
+            reward = 20
+            stats[uid]['balance'] += reward
+            stats[uid]['daily_reposts_count'] += 1
+            save_json('data/stats.json', stats)
+            
+            remaining = 5 - stats[uid]['daily_reposts_count']
+            
+            # Отправляем радостное сообщение с остатком лимита
+            text = get_text(uid, "repost_success").format(reward, remaining)
+            bot.reply_to(message, text)
+        else:
+            # Лимит исчерпан
+            bot.reply_to(message, get_text(uid, "repost_limit_daily"))
     else:
-        uid = str(message.from_user.id)
-        max_limit = 5 # Твой текущий лимит
-
-        # Вызываем перевод и подставляем цифры лимита
-        text = get_text(uid, "repost_limit_reached").format(max_limit, max_limit)
-
-        bot.reply_to(message, text)
+        # Пост переслан из чужого источника
+        bot.reply_to(message, get_text(uid, "repost_error_wrong_source"))
 
 
 
@@ -546,51 +464,6 @@ def process_apy_step(message):
 
         # Получаем локализованное сообщение об ошибке
         bot.reply_to(message, get_text(uid, "error_invalid_number"))
-
-
-
-
-
-
-@bot.message_handler(func=lambda message: message.forward_from_chat is not None)
-def handle_forward(message):
-    uid = str(message.from_user.id)
-    
-    # Проверяем, что пост именно из твоего канала (замени ID на свой)
-    # Его можно узнать, переслав пост любому боту типа @IDBot
-    MY_CHANNEL_ID = -100234567890  # Твой ID канала
-
-    if message.forward_from_chat.id == MY_CHANNEL_ID:
-        # Проверяем лимиты (5 раз в день)
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        if stats[uid].get('last_repost_date') != today:
-            stats[uid]['daily_reposts_count'] = 0
-            stats[uid]['last_repost_date'] = today
-
-        if stats[uid]['daily_reposts_count'] < 5:
-            stats[uid]['balance'] += 20
-            stats[uid]['daily_reposts_count'] += 1
-            save_json('data/stats.json', stats)
-            uid = str(message.from_user.id)
-            reward = 20
-            # Безопасно получаем количество репостов (если ключа нет, ставим 0)
-            count = stats.get(uid, {}).get('daily_reposts_count', 0)
-            remaining = 5 - count
-
-            # Вызываем перевод и вставляем значения
-            text = get_text(uid, "repost_success").format(reward, remaining)
-
-            bot.reply_to(message, text)
-        else:
-            uid = str(message.from_user.id)
-
-            # Получаем локализованный текст ошибки
-            bot.reply_to(message, get_text(uid, "repost_limit_daily"))
-    else:
-        uid = str(message.from_user.id)
-
-        # Получаем локализованный текст об ошибке источника
-        bot.reply_to(message, get_text(uid, "repost_error_wrong_source"))
 
 
 
@@ -701,54 +574,82 @@ def admin_announce_en_step(message, ru_text):
 
 
 
-
-
-
-
-
-
-
-
-
-
-#    $$$$$$\  $$$$$$\       $$\                          $$\           
-#   $$  __$$\ \_$$  _|      $$ |                         \__|          
-#   $$ /  $$ |  $$ |        $$ |      $$$$$$\   $$$$$$\  $$\  $$$$$$$\ 
-#   $$$$$$$$ |  $$ |        $$ |     $$  __$$\ $$  __$$\ $$ |$$  _____|
-#   $$  __$$ |  $$ |        $$ |     $$ /  $$ |$$ /  $$ |$$ |$$ /      
-#   $$ |  $$ |  $$ |        $$ |     $$ |  $$ |$$ |  $$ |$$ |$$ |      
-#   $$ |  $$ |$$$$$$\       $$$$$$$$\\$$$$$$  |\$$$$$$$ |$$ |\$$$$$$$\ 
-#     \__|\______|      \________|\______/  \____$$ |\__| \_______|
-#                                              $$\   $$ |              
-#                                              \$$$$$$  |              
-#                                               \______/   
-
-
+# <--------------- AI generation  --------------->  
 ollama_client = Client(
     host="https://ollama.com",
     headers={'Authorization': 'Bearer ' + os.environ.get('OLLAMA_API_KEY')}
 )
 
-@bot.message_handler(func=lambda message: True)
+# Указываем ВСЕ типы контента, чтобы бот мог на них реагировать
+@bot.message_handler(content_types=['text', 'photo', 'video', 'animation', 'document', 'sticker', 'voice', 'video_note'])
 def ai_message_handler(message):
     uid = str(message.from_user.id)
+    chat_type = message.chat.type
     
-    # 1. ПРОВЕРКА: Есть ли юзер в базе?
+    # 1. АВТО-РЕГИСТРАЦИЯ (Если юзер пишет впервые, создаем ему профиль)
     if uid not in stats:
-        bot.reply_to(message, "❌ Пожалуйста, напишите /start для регистрации.")
+        stats[uid] = {
+            'balance': 15.0, # Даем стартовые монетки
+            'total_spent_tokens': 0,
+            'last_bonus_date': "",
+            'daily_reposts_count': 0,
+            'last_repost_date': "",
+            'viewed_posts': [],
+        }
+        save_json('data/stats.json', stats)
+        
+        # Добавляем также в users.json для учета языка
+        if uid not in users:
+            users[uid] = {
+                "username": message.from_user.username or "NoUsername",
+                "first_name": message.from_user.first_name or "User",
+                "lang": "ru"
+            }
+            save_json('data/users.json', users)
+            
+        if uid not in chats:
+            chats[uid] = []
+            save_json('data/chats.json', chats)
+
+    # 2. ФИЛЬТР ВЫЗОВА В ГРУППАХ (Отвечает только если позвали или ответили)
+    bot_me = bot.get_me()
+    if chat_type in ['group', 'supergroup']:
+        is_mentioned = False
+        is_reply = False
+
+        # Проверяем упоминание (например, @MewAIBot привет)
+        if message.text and message.entities:
+            for entity in message.entities:
+                if entity.type == "mention":
+                    mention_text = message.text[entity.offset:entity.offset + entity.length]
+                    if mention_text == f"@{bot_me.username}":
+                        is_mentioned = True
+        
+        # Проверяем ответ (реплай) на сообщение бота
+        if message.reply_to_message and message.reply_to_message.from_user.id == bot_me.id:
+            is_reply = True
+
+        # Если в группе бот не упомянут и это не реплай — игнорируем
+        if not (is_mentioned or is_reply):
+            return
+
+    # 3. ФИЛЬТР МЕДИА-ФАЙЛОВ
+    if message.content_type != 'text':
+        # Можно вынести эту фразу в language.json, но пока оставим так
+        bot.reply_to(message, "Мяу! 🐾 Я пока умею читать только текст. Картинки, кружочки и гифки — для меня темный лес. Напиши словами!")
         return
 
-    # 2. ПРОВЕРКА БАЛАНСА
+    # 4. ПРОВЕРКА БАЛАНСА
     user_balance = stats[uid].get('balance', 0)
     if user_balance <= 0:
-        bot.reply_to(message, get_text(uid, "low_balance_error").format(balance=user_balance))
+        bot.reply_to(message, get_text(uid, "low_balance_error").format(balance=f"{user_balance:.2f}"))
         return
 
-    # 3. ПОДГОТОВКА КОНТЕКСТА
+    # 5. ПОДГОТОВКА КОНТЕКСТА
     user_history = chats.get(uid, [])
     user_history.append({'role': 'user', 'content': message.text})
     
-    # Ограничиваем память (последние 10 сообщений), чтобы не тратить лишние монеты
+    # Ограничиваем память (последние 10 сообщений)
     if len(user_history) > 10:
         user_history = user_history[-10:]
 
@@ -759,8 +660,7 @@ def ai_message_handler(message):
     last_update_time = datetime.datetime.now()
 
     try:
-        # 4. ЗАПРОС К OLLAMA
-        # Берем системный промпт из language.json
+        # 6. ЗАПРОС К OLLAMA CLOUD
         system_msg = {'role': 'system', 'content': get_text(uid, "system_prompt")}
         messages_to_send = [system_msg] + user_history
 
@@ -769,29 +669,26 @@ def ai_message_handler(message):
             chunk = part['message']['content']
             full_response += chunk
             
-            # Обновляем сообщение в ТГ не чаще чем раз в 2 секунды (лимиты Telegram)
-            if (datetime.datetime.now() - last_update_time).total_seconds() > 2.0:
+            # Обновляем сообщение не чаще раза в 2.5 секунды
+            if (datetime.datetime.now() - last_update_time).total_seconds() > 2.5:
                 try:
-                    bot.edit_message_text(full_response + " ▌ ", message.chat.id, status_msg.message_id)
+                    bot.edit_message_text(full_response + " ▌", message.chat.id, status_msg.message_id)
                     last_update_time = datetime.datetime.now()
                 except:
-                    pass # Пропускаем ошибки редактирования
+                    pass
 
-        # 5. РАСЧЕТ СТОИМОСТИ
-        # Считаем примерно: 1 токен ≈ 4 символа. Или используем длину текста.
-        # Твой алгоритм: 1 монета = 5300 токенов. 
-        # Допустим, 1 символ текста = 0.25 токена.
+        # 7. РАСЧЕТ СТОИМОСТИ (Удешевленная версия)
         total_chars = len(message.text) + len(full_response)
-        tokens_spent = total_chars / 4  # Приблизительная оценка
-        coins_to_deduct = tokens_spent / 5300
+        tokens_spent = total_chars / 4 
+        coins_to_deduct = tokens_spent / 15000 # Новая дешевая генерация
 
-        # Списываем баланс (может уйти в минус, как ты и хотел)
         stats[uid]['balance'] -= coins_to_deduct
-        stats[uid]['total_spent_tokens'] += tokens_spent
+        stats[uid]['total_spent_tokens'] = stats[uid].get('total_spent_tokens', 0) + tokens_spent
         save_json('data/stats.json', stats)
 
-        # 6. ФИНАЛЬНОЕ ОБНОВЛЕНИЕ
-        final_text = full_response + f"\n\n💰 -{coins_to_deduct:.4f} 🪙"
+        # 8. ФИНАЛЬНОЕ ОБНОВЛЕНИЕ
+        # strip() убирает лишние пробелы в конце ответа от ИИ
+        final_text = full_response.strip() + f"\n\n💰 -{coins_to_deduct:.4f} 🪙"
         
         try:
             bot.edit_message_text(
@@ -801,31 +698,26 @@ def ai_message_handler(message):
                 parse_mode="Markdown"
             )
         except Exception as e:
+            # Если Markdown сломался, отправляем чистый текст
             bot.edit_message_text(
                 chat_id=message.chat.id, 
                 message_id=status_msg.message_id, 
                 text=final_text
             )
-            print(f"Ошибка Markdown: {e}")
 
         # Сохраняем ответ в историю
         user_history.append({'role': 'assistant', 'content': full_response})
         chats[uid] = user_history
         save_json('data/chats.json', chats)
 
-    except Exception as e:  # ЭТОТ БЛОК ОБЯЗАТЕЛЕН! Он закрывает самый первый try
+    except Exception as e:
         print(f"Ошибка ИИ: {e}")
-        # Пытаемся отправить сообщение об ошибке пользователю
         try:
-            bot.edit_message_text(
-                get_text(uid, "ai_error"), 
-                message.chat.id, 
-                status_msg.message_id
-            )
+            bot.edit_message_text(get_text(uid, "ai_error"), message.chat.id, status_msg.message_id)
         except:
             pass
 
-# ЗАПУСК БОТА (вне функции handle_message)
+# ЗАПУСК БОТА
 if __name__ == '__main__':
-    print("Бот запущен...")
-    bot.infinity_polling()
+    print("🐾 MewAI запущен и готов к работе...")
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
