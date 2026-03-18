@@ -1,4 +1,3 @@
-
 # <--------------- MewAI --------------->                                                     
 import os
 import telebot
@@ -17,8 +16,9 @@ bot = telebot.TeleBot(TOKEN)
 
 #pip install -r requirements.txt
 
-POSTS_LIST = [
-    "https://t.me/kayoosh_channel/213", "https://t.me/kayoosh_channel/214", "https://t.me/kayoosh_channel/215"
+CHANNELS_TO_SUB = [
+    {"id": "-1003826745366", "link": "https://t.me/ne1roneko_community", "name": "MewAI Community"},
+    {"id": "-1003414162996", "link": "https://t.me/kayoosh_channel", "name": "Окровавленная комнатка Кая"}
 ]
 
 
@@ -69,6 +69,17 @@ def init_db():
             tx_type TEXT,
             timestamp TEXT
         )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS staking (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uid TEXT,
+        amount INTEGER,
+        start_date TEXT,
+        end_date TEXT,
+        status TEXT DEFAULT 'active'
+    )
     ''')
     
     cursor.execute("SELECT COUNT(*) FROM global_pool")
@@ -140,7 +151,6 @@ def check_reward_claimed(uid, tx_type):
     """Проверяет, получал ли юзер награду этого типа (например, за подписку)"""
     res = db_query("SELECT tx_id FROM ledger WHERE receiver_uid = ? AND tx_type = ?", (uid, tx_type), fetchone=True)
     return res is not None
-
 
 
 
@@ -313,53 +323,145 @@ def handle_earn_callbacks(call):
     action = call.data.split('_')[1]
 
     if action == "sub":
-        # Проверяем, не получал ли уже
-        if check_reward_claimed(uid, 'sub_reward'):
-            bot.answer_callback_query(call.id, "❌ You have already claimed this reward!", show_alert=True)
+        user_id = call.from_user.id
+        target_channel = None
+
+        # Ищем первый канал, за который еще НЕТ награды в базе
+        for channel in CHANNELS_TO_SUB:
+            tx_type = f"sub_reward_{channel['id']}" # Уникальный тип для каждого канала
+            if not check_reward_claimed(uid, tx_type):
+                target_channel = channel
+                break
+
+        if not target_channel:
+            bot.answer_callback_query(call.id, "✅ You have subscribed to all available channels!", show_alert=True)
             return
 
-        # Проверяем подписку
-        if is_subscribed(call.from_user.id):
-            # Начисляем 100 Purrs от системы
-            make_transaction('SYSTEM', uid, 100, 'sub_reward')
-            bot.answer_callback_query(call.id, "✅ Success! +100 Purrs added!", show_alert=True)
-            bot.edit_message_text("Thank you for subscribing! Your bonus is credited.", call.message.chat.id, call.message.message_id)
+        # Проверяем подписку на найденный канал
+        try:
+            status = bot.get_chat_member(target_channel['id'], user_id).status
+            is_member = status in ['member', 'administrator', 'creator']
+        except Exception as e:
+            is_member = False
+            print(f"Error checking sub: {e}")
+
+        if is_member:
+            # Начисляем награду именно за этот канал
+            tx_type = f"sub_reward_{target_channel['id']}"
+            make_transaction('SYSTEM', uid, 100, tx_type)
+                
+            bot.answer_callback_query(call.id, f"✅ +100 Purrs for {target_channel['name']}!", show_alert=True)
+                
+            # Предлагаем следующий канал или завершаем
+            bot.edit_message_text(
+                f"🎉 <b>Success!</b> You've earned 100 Purrs for joining {target_channel['name']}.\n\nClick below to check the next task!", 
+                call.message.chat.id, call.message.message_id, 
+                parse_mode="HTML",
+                reply_markup=types.InlineKeyboardMarkup().add(
+                    types.InlineKeyboardButton("Next Channel 🐾", callback_data="earn_sub")
+                )
+            )
         else:
-            bot.answer_callback_query(call.id, "⚠️ You are not subscribed to @kayoosh_channel yet!", show_alert=True)
+            # Если не подписан — пробуем обновить сообщение
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton(f"Join {target_channel['name']}", url=target_channel['link']))
+            markup.add(types.InlineKeyboardButton("✅ Check Subscription", callback_data="earn_sub"))
+            
+            # Уведомляем всплывающим окном, что подписка не найдена
+            bot.answer_callback_query(call.id, f"⚠️ You are not subscribed to {target_channel['name']} yet!", show_alert=True)
+            
+            try:
+                bot.edit_message_text(
+                    f"Чтобы получить награду, подпишитесь на канал <b>{target_channel['name']}</b> и нажмите кнопку ниже:",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+            except telebot.apihelper.ApiTelegramException as e:
+                if "message is not modified" in e.description:
+                    pass # Игнорируем, если текст тот же самый
+                else:
+                    raise e
 
     elif action == "apy":
-        # Создаем кнопки для выбора суммы стейкинга
-        markup = types.InlineKeyboardMarkup()
-        markup.add(
-            types.InlineKeyboardButton("Stake 100", callback_data="stake_100"),
-            types.InlineKeyboardButton("Stake 1000", callback_data="stake_1000"),
-            types.InlineKeyboardButton("Stake 10000", callback_data="stake_10000")
-        )
-        markup.add(types.InlineKeyboardButton("⬅️ Back to Earn", callback_data="earn_refresh"))
+            balance = get_balance(uid)
+            
+            # Проверяем, есть ли уже активные стейки
+            active_stakes = db_query("SELECT amount, end_date FROM staking WHERE uid = ? AND status = 'active'", (uid,), fetchall=True)
+            
+            markup = types.InlineKeyboardMarkup()
+            
+            if active_stakes:
+                # Если есть активный стейк, показываем инфо о нем
+                amount, end_date = active_stakes[0]
+                profit = int(amount * 0.07) # 7% прибыли
+                apy_info = (
+                    "📈 <b>Your Active Stake</b>\n\n"
+                    f"💰 Amount: <b>{amount} Purrs</b>\n"
+                    f"⏳ Release Date: <code>{end_date}</code>\n"
+                    f"🎁 Expected Profit: <b>+{profit} Purrs</b>\n\n"
+                    "<i>You can't stake more until this one is finished.</i>"
+                )
+            else:
+                # Если стейков нет, предлагаем выбрать сумму
+                markup.add(
+                    types.InlineKeyboardButton("Stake 100", callback_data="stake_100"),
+                    types.InlineKeyboardButton("Stake 1000", callback_data="stake_1000")
+                )
+                markup.add(types.InlineKeyboardButton("Stake 10000", callback_data="stake_10000"))
+                
+                apy_info = (
+                    "📈 <b>MewAI Staking</b>\n\n"
+                    "Lock your Purrs for <b>30 days</b> to earn rewards.\n"
+                    "🔥 Monthly Rate: <b>7% APY</b>\n\n"
+                    f"Your balance: <code>{balance} Purrs</code>\n"
+                    "<i>Select amount to lock:</i>"
+                )
 
-        balance = get_balance(uid)
-        apy_info = (
-            "📈 <b>MewAI Staking</b>\n\n"
-            "By staking your Purrs, you lock them for 30 days to support network stability.\n"
-            "In return, you get <b>7% monthly growth</b>.\n\n"
-            f"Your current balance: <code>{balance} Purrs</code>\n"
-            "<i>Choose the amount you want to stake:</i>"
-        )
-        bot.edit_message_text(apy_info, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
+            markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="earn_refresh"))
+            bot.edit_message_text(apy_info, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
 
-    # Добавляем новый обработчик для самих транзакций стейкинга
     elif action.startswith("stake_"):
-        amount = int(call.data.split('_')[2])
-        if get_balance(uid) < amount:
-            bot.answer_callback_query(call.id, "❌ Not enough Purrs for this stake!", show_alert=True)
-        else:
-            # Переводим в SYSTEM (заморозка)
-            make_transaction(uid, 'SYSTEM', amount, 'staking_deposit')
-            bot.answer_callback_query(call.id, f"✅ {amount} Purrs successfully staked!", show_alert=True)
-            bot.edit_message_text(f"🚀 <b>Success!</b>\nYou have staked <b>{amount} Purrs</b>.\nRewards will be added in 30 days.", call.message.chat.id, call.message.message_id, parse_mode="HTML")
+        amount = int(call.data.split('_')[1])
+        balance = get_balance(uid)
 
-# Замени ID в начале кода или в .env на: 8476695954
-# ADMIN_ID = 8476695954 
+        # 1. Проверка баланса
+        if balance < amount:
+            bot.answer_callback_query(call.id, "❌ Not enough Purrs!", show_alert=True)
+            return
+
+        # 2. Проверка, нет ли уже активного стейка
+        already_staking = db_query("SELECT id FROM staking WHERE uid = ? AND status = 'active'", (uid,), fetchone=True)
+        if already_staking:
+            bot.answer_callback_query(call.id, "⚠️ You already have an active stake!", show_alert=True)
+            return
+
+        # 3. Расчет дат (на 30 дней вперед)
+        start_date = datetime.datetime.now()
+        end_date = start_date + datetime.timedelta(days=30)
+            
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
+
+        # 4. Проведение транзакции (списываем в систему)
+        make_transaction(uid, 'SYSTEM', amount, 'staking_deposit')
+
+        # 5. Запись в таблицу стейкинга
+        db_query("INSERT INTO staking (uid, amount, start_date, end_date, status) VALUES (?, ?, ?, ?, 'active')",(uid, amount, start_str, end_str), commit=True)
+
+        bot.answer_callback_query(call.id, "🚀 Stake locked successfully!", show_alert=True)
+            
+        # Обновляем сообщение на красивое подтверждение
+        success_text = (
+            "✅ <b>Staking Activated!</b>\n\n"
+            f"Locked: <b>{amount} Purrs</b>\n"
+            f"Unlock Date: <code>{end_str}</code>\n"
+            "Reward: <b>+7%</b>\n\n"
+            "<i>Your Purrs are now working for you. Come back in 30 days!</i>"
+        )
+        back_markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("⬅️ Back to Earn", callback_data="earn_refresh"))
+        bot.edit_message_text(success_text, call.message.chat.id, call.message.message_id, reply_markup=back_markup, parse_mode="HTML")
+
 
 @bot.message_handler(commands=['get'])
 def cmd_admin_give(message):
@@ -474,7 +576,7 @@ def ai_message_handler(message):
         "You are MewAI, a helpful AI assistant in a crypto ecosystem. "
         "Guidelines:\n"
         "1. Keep it short and positive. Your goal is to help the user \n"
-        "2. Use Telegram **Markdown**, wrap code in **triple backticks**, etc. \n"
+        "2. Use html tags to Markdown the text \n"
         "3. Do not use tables or anything Telegram cannot support. Avoid using special characters like double asterisks or underscores."
     )
     messages_to_send = [{'role': 'system', 'content': system_prompt}] + user_history
