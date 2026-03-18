@@ -358,6 +358,53 @@ def handle_earn_callbacks(call):
             bot.answer_callback_query(call.id, f"✅ {amount} Purrs successfully staked!", show_alert=True)
             bot.edit_message_text(f"🚀 <b>Success!</b>\nYou have staked <b>{amount} Purrs</b>.\nRewards will be added in 30 days.", call.message.chat.id, call.message.message_id, parse_mode="HTML")
 
+# Замени ID в начале кода или в .env на: 8476695954
+# ADMIN_ID = 8476695954 
+
+@bot.message_handler(commands=['get'])
+def cmd_admin_give(message):
+    # 1. СТРОГАЯ ПРОВЕРКА НА ТВОЙ ID
+    if message.from_user.id != 8476695954:
+        bot.reply_to(message, "❌ <b>Access Denied.</b>")
+        return
+
+    # 2. ПАРСИНГ: /get @username 100
+    args = message.text.split()
+    if len(args) < 3:
+        bot.reply_to(message, "❌ <b>Usage:</b> <code>/get @username amount</code>", parse_mode="HTML")
+        return
+
+    target_username = args[1].replace('@', '') 
+    try:
+        amount = int(args[2])
+    except ValueError:
+        bot.reply_to(message, "❌ <b>Amount must be a number.</b>", parse_mode="HTML")
+        return
+
+    # 3. ПОИСК UID В ТВОЕЙ ТАБЛИЦЕ users
+    user_data = db_query("SELECT uid FROM users WHERE username = ?", (target_username,), fetchall=True)
+
+    if not user_data:
+        bot.reply_to(message, f"❌ User <b>@{target_username}</b> not found in database.", parse_mode="HTML")
+        return
+
+    target_uid = user_data[0][0]
+
+    # 4. НАЧИСЛЕНИЕ ЧЕРЕЗ ТВОЮ СИСТЕМУ ТРАНЗАКЦИЙ
+    try:
+        # Деньги берутся из SYSTEM (Global Pool) и переводятся юзеру
+        make_transaction('SYSTEM', target_uid, amount, 'admin_gift')
+        
+        bot.reply_to(message, f"✅ <b>Success!</b>\nSent <code>{amount} Purrs</code> to @{target_username}.", parse_mode="HTML")
+        
+        # Уведомляем пользователя
+        try:
+            bot.send_message(target_uid, f"🎁 <b>You received a gift!</b>\nAdmin added <code>{amount} Purrs</code> to your balance.", parse_mode="HTML")
+        except:
+            pass 
+            
+    except Exception as e:
+        bot.reply_to(message, f"❌ Transaction error: {e}")
 
 
 
@@ -426,7 +473,7 @@ def ai_message_handler(message):
     system_prompt = (
         "You are MewAI, a helpful AI assistant in a crypto ecosystem. "
         "Guidelines:\n"
-        "1. Keep it short and positive. Your goal is to help the user. Also, use kaomoji and sweet words for the conversation.\n"
+        "1. Keep it short and positive. Your goal is to help the user \n"
         "2. Use Telegram **Markdown**, wrap code in **triple backticks**, etc. \n"
         "3. Do not use tables or anything Telegram cannot support. Avoid using special characters like double asterisks or underscores."
     )
