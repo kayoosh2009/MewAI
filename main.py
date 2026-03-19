@@ -21,6 +21,10 @@ CHANNELS_TO_SUB = [
     {"id": "-1003414162996", "link": "https://t.me/kayoosh_channel", "name": "Окровавленная комнатка Кая"}
 ]
 
+def escape_markdown(text):
+    """Экранирует спецсимволы для Telegram MarkdownV2"""
+    reserved_chars = r'_*[]()~`>#+-=|{}.!'
+    return ''.join(['\\' + char if char in reserved_chars else char for char in text])
 
 
 # <--------------- Database Logic --------------->
@@ -573,11 +577,14 @@ def ai_message_handler(message):
     
     # УЛУЧШЕННЫЙ ПРОМТ (Заставляем ИИ использовать HTML и запрещаем Markdown)
     system_prompt = (
-        "You are MewAI, a helpful AI assistant in a crypto ecosystem. "
-        "Guidelines:\n"
-        "1. Keep it short and positive. Your goal is to help the user \n"
-        "2. Use html tags to Markdown the text \n"
-        "3. Do not use tables or anything Telegram cannot support. Avoid using special characters like double asterisks or underscores."
+        "You are MewAI, a helpful cat-themed AI assistant in a crypto ecosystem. "
+        "Your goal is to provide insightful, accurate, and concise answers. "
+        "Formatting rules:\n"
+        "1. Use Telegram MarkdownV2 for all formatting.\n"
+        "2. Bold: *text*, Italic: _text_, Monospace: `text`.\n"
+        "3. Use code blocks for programming: ```python\\n print('hi') ```.\n"
+        "4. Be friendly, use cat emojis (🐾, 🐱), and avoid complex tables.\n"
+        "5. CRITICAL: Escape special characters like . ! - if they are not part of a markdown tag."
     )
     messages_to_send = [{'role': 'system', 'content': system_prompt}] + user_history
 
@@ -603,7 +610,7 @@ def ai_message_handler(message):
                 # Обновляем сообщение не чаще раза в 2.5 секунды
                 if (datetime.datetime.now() - last_update_time).total_seconds() > 2.5:
                     try:
-                        bot.edit_message_text(full_response + " ▌", message.chat.id, status_msg.message_id, parse_mode="HTML")
+                        bot.edit_message_text(full_response + " ▌", message.chat.id, status_msg.message_id)
                         last_update_time = datetime.datetime.now()
                     except:
                         pass
@@ -630,26 +637,43 @@ def ai_message_handler(message):
     # Оплата уходит в SYSTEM (Global Pool)
     make_transaction(uid, 'SYSTEM', cost, 'ai_payment')
 
-    # 8. ФИНАЛЬНОЕ ОБНОВЛЕНИЕ ТЕКСТА (Только HTML)
-    final_text = f"{full_response.strip()}\n\n💰 <code>-{cost} Purrs</code>"
+    # 8. ФИНАЛЬНОЕ ОБНОВЛЕНИЕ ТЕКСТА (MarkdownV2)
+    cost_text = escape_markdown(f"\n\n💰 -{cost} Purrs")
     
-    try:
-        bot.edit_message_text(
-            chat_id=message.chat.id, 
-            message_id=status_msg.message_id, 
-            text=final_text, 
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        # Fallback без форматирования, если ИИ все же сломал HTML-теги
-        bot.edit_message_text(
-            chat_id=message.chat.id, 
-            message_id=status_msg.message_id, 
-            text=final_text
-        )
+    # Лимит Telegram ~4096, возьмем 4000 для запаса
+    MAX_LEN = 4000 
+    
+    if len(full_response) <= MAX_LEN:
+        # Обычный короткий ответ
+        final_text = f"{full_response.strip()}{cost_text}"
+        try:
+            bot.edit_message_text(final_text, message.chat.id, status_msg.message_id, parse_mode="MarkdownV2")
+        except:
+            bot.edit_message_text(full_response.strip() + f"\n\n💰 -{cost} Purrs", message.chat.id, status_msg.message_id)
+    else:
+        # Длинный ответ: разбиваем на части
+        parts = [full_response[i:i+MAX_LEN] for i in range(0, len(full_response), MAX_LEN)]
+        
+        # Редактируем первое сообщение (статус) первой частью текста
+        try:
+            bot.edit_message_text(parts[0], message.chat.id, status_msg.message_id, parse_mode="MarkdownV2")
+        except:
+            bot.edit_message_text(parts[0], message.chat.id, status_msg.message_id)
+            
+        # Отправляем остальные части новыми сообщениями
+        for i in range(1, len(parts)):
+            content = parts[i]
+            # Если это последняя часть, добавляем инфо о стоимости
+            if i == len(parts) - 1:
+                content += cost_text
+                
+            try:
+                bot.send_message(message.chat.id, content, parse_mode="MarkdownV2")
+            except:
+                bot.send_message(message.chat.id, content)
 
     # 9. СОХРАНЯЕМ ОТВЕТ В ИСТОРИЮ БД
-    db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", (uid, 'assistant', full_response), commit=True)
+    db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", (uid, 'user', message.text), commit=True)
 
 
 # ЗАПУСК БОТА
