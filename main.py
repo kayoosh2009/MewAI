@@ -736,7 +736,7 @@ def ai_message_handler(message):
     # Здесь сохраняем ТОЛЬКО ответ бота, так как вопрос юзера уже в базе (из блока №4)
     db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", 
              (uid, 'assistant', full_response), commit=True)
-
+    safe_answer = escape_markdown(full_response[:150])
     # 11. ЛОГИРОВАНИЕ ДЛЯ АДМИНА
     log_chat_msg = (
         f"✉️ **Сообщение в ИИ**\n"
