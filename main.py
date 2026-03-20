@@ -26,8 +26,58 @@ def escape_markdown(text):
     reserved_chars = r'_*[]()~`>#+-=|{}.!'
     return ''.join(['\\' + char if char in reserved_chars else char for char in text])
 
+LOG_CHAT_ID = 3722531501
+
+def send_log(tag, message_text):
+    """
+    Универсальный призыватель логов.
+    tag: хештег (NEW_USER, CHAT, STATS и т.д.)
+    message_text: что именно случилось
+    """
+    now = datetime.datetime.now().strftime("%H:%M:%S")
+    # Формируем красивое сообщение
+    log_payload = (
+        f"🕒 `{now}`\n"
+        f"{message_text}\n\n"
+        f"#{tag}"
+    )
+    try:
+        bot.send_message(LOG_CHAT_ID, log_payload, parse_mode="Markdown")
+    except Exception as e:
+        print(f"❌ Ошибка отправки лога: {e}")
 
 # <--------------- Database Logic --------------->
+def init_dataset_db():
+    """Создает вечную БД для хранения пар вопрос-ответ"""
+    conn = sqlite3.connect('dataset.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS training_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_query TEXT,
+            ai_response TEXT,
+            timestamp TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def save_to_dataset(query, response):
+    """Анонимно сохраняет переписку в датасет"""
+    try:
+        conn = sqlite3.connect('dataset.db')
+        cursor = conn.cursor()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("INSERT INTO training_data (user_query, ai_response, timestamp) VALUES (?, ?, ?)", 
+                       (query, response, now))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Dataset Error: {e}")
+
+# Запускаем создание при старте
+init_dataset_db()
+
 def init_db():
     conn = sqlite3.connect('mewai.db')
     cursor = conn.cursor()
@@ -181,6 +231,7 @@ def cmd_start(message):
         # Награда за первую регистрацию (Welcome Bonus) - 15 Purrs
         make_transaction('SYSTEM', uid, 15, 'welcome_bonus')
         bonus_msg = "🎁 Welcome Bonus: +15 Purrs added to your balance!"
+        send_log("NEW_USER", f"👤 **Новый котенок в системе!**\nID: `{uid}`\nИмя: {first_name}\nЮзер: @{username}")
     else:
         # Старый пользователь: проверяем Daily Reward (Streak)
         streak, last_login = user
@@ -194,8 +245,10 @@ def cmd_start(message):
             
             db_query("UPDATE users SET streak = ?, last_login = ? WHERE uid = ?", (new_streak, today, uid), commit=True)
             bonus_msg = f"🎁 Daily Bonus: +{daily_reward} Purrs! (Streak: {new_streak} days)"
+            send_log("STREAK", f"🔥 **Стрик обновлен!**\nЮзер: @{username}\nНаграда: +{daily_reward} Purrs")
         else:
             bonus_msg = ""
+
 
     # 2. CREATE MENU (Reply Keyboard)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -236,7 +289,6 @@ def cmd_start(message):
 @bot.message_handler(func=lambda message: message.text == "📊 Stats")
 def cmd_stats(message):
     uid = str(message.from_user.id)
-    
     # Получаем данные пользователя из таблицы users
     user_data = db_query("SELECT username, first_name, join_date, streak FROM users WHERE uid = ?", (uid,), fetchone=True)
     
@@ -269,6 +321,7 @@ def cmd_stats(message):
     )
 
     bot.send_message(message.chat.id, receipt_text, parse_mode="Markdown")
+    send_log("STATS", f"📊 **Запрос статистики**\nОт: @{username} (`{uid}`)")
 
 
 
@@ -282,6 +335,7 @@ def cmd_clear(message):
     
     # 1. Удаляем всю историю переписки пользователя из SQLite
     db_query("DELETE FROM history WHERE uid = ?", (uid,), commit=True)
+    send_log("CLEAR", f"🧹 **История стерта**\nЮзер: @{message.from_user.username} (`{uid}`)")
     
     # 2. Формируем текст подтверждения на английском
     confirm_text = (
@@ -303,7 +357,6 @@ def cmd_earn(message):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("📢 Subscribe to Channel (+100 Purrs)", callback_data="earn_sub"),
-        types.InlineKeyboardButton("📈 Open Staking (7% APY)", callback_data="earn_apy"),
         types.InlineKeyboardButton("🎮 Play Clicker Game", url="https://yourgame.link"), # Ссылка на твою игру
         types.InlineKeyboardButton("🔄 Refresh Bonus Status", callback_data="earn_refresh")
     )
@@ -577,14 +630,14 @@ def ai_message_handler(message):
     
     # УЛУЧШЕННЫЙ ПРОМТ (Заставляем ИИ использовать HTML и запрещаем Markdown)
     system_prompt = (
-        "You are MewAI, a helpful cat-themed AI assistant in a crypto ecosystem. "
-        "Your goal is to provide insightful, accurate, and concise answers. "
-        "Formatting rules:\n"
-        "1. Use Telegram MarkdownV2 for all formatting.\n"
-        "2. Bold: *text*, Italic: _text_, Monospace: `text`.\n"
-        "3. Use code blocks for programming: ```python\\n print('hi') ```.\n"
-        "4. Be friendly, use cat emojis (🐾, 🐱), and avoid complex tables.\n"
-        "5. CRITICAL: Escape special characters like . ! - if they are not part of a markdown tag."
+    "You are MewAI, a chill and concise companion. "
+    "Rules of conduct:\n"
+    "1. BE CONCISE: Answer in one or two short sentences unless a detailed explanation is requested. "
+    "2. NO CRYPTO TALK: Never mention tokens, Purrs, ecosystem, or projects unless directly asked. "
+    "3. NATURAL FLOW: Don't greet the user unless they greeted you first. Don't be a 'servant'—be a peer. "
+    "4. NO AI CLICHÉS: Avoid phrases like 'As an AI...', 'How can I help you today?', or 'I'm here to assist'. "
+    "5. FORMATTING: Use Telegram MarkdownV2. Always escape special characters (like - . ! >) if they are not part of a markdown tag. "
+    "6. PERSONALITY: Friendly but minimalist. Use a few emojis only if it fits the mood, don't overdo it."
     )
     messages_to_send = [{'role': 'system', 'content': system_prompt}] + user_history
 
@@ -674,6 +727,24 @@ def ai_message_handler(message):
 
     # 9. СОХРАНЯЕМ ОТВЕТ В ИСТОРИЮ БД
     db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", (uid, 'user', message.text), commit=True)
+
+
+   save_to_dataset(message.text, full_response)
+
+    # 10. СОХРАНЯЕМ ОТВЕТ ИИ В ИСТОРИЮ (Для контекста)
+    # Используем role='assistant', чтобы ИИ понимал, что это его слова
+    db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", 
+             (uid, 'assistant', full_response), commit=True)
+
+    # 11. ЛОГИРОВАНИЕ
+    log_chat_msg = (
+        f"✉️ **Сообщение в ИИ**\n"
+        f"👤 От: @{message.from_user.username or 'Anon'}\n"
+        f"❓ Вопрос: _{message.text}_\n"
+        f"🤖 Ответ: _{full_response[:150]}..._\n"
+        f"💰 Списано: `{cost} Purrs`"
+    )
+    send_log("CHAT", log_chat_msg)
 
 
 # ЗАПУСК БОТА
