@@ -729,14 +729,15 @@ def ai_message_handler(message):
     db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", (uid, 'user', message.text), commit=True)
 
 
-   save_to_dataset(message.text, full_response)
+# 9. СОХРАНЯЕМ В ВЕЧНЫЙ ДАТАСЕТ (Анонимно)
+    save_to_dataset(message.text, full_response)
 
-    # 10. СОХРАНЯЕМ ОТВЕТ ИИ В ИСТОРИЮ (Для контекста)
-    # Используем role='assistant', чтобы ИИ понимал, что это его слова
+    # 10. СОХРАНЯЕМ ОТВЕТ ИИ В ИСТОРИЮ
+    # Здесь сохраняем ТОЛЬКО ответ бота, так как вопрос юзера уже в базе (из блока №4)
     db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", 
              (uid, 'assistant', full_response), commit=True)
 
-    # 11. ЛОГИРОВАНИЕ
+    # 11. ЛОГИРОВАНИЕ ДЛЯ АДМИНА
     log_chat_msg = (
         f"✉️ **Сообщение в ИИ**\n"
         f"👤 От: @{message.from_user.username or 'Anon'}\n"
