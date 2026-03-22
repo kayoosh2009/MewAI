@@ -47,6 +47,39 @@ def send_log(tag, message_text):
         print(f"❌ Ошибка отправки лога: {e}")
 
 # <--------------- Database Logic --------------->
+def repair_database():
+    databases = ['mewai.db', 'dataset.db']
+    
+    for db_name in databases:
+        try:
+            conn = sqlite3.connect(db_name)
+            cursor = conn.cursor()
+            
+            # 1. Включаем режим WAL (Write-Ahead Logging)
+            # Это решает 90% ошибок "Database is full/locked" на хостингах
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            
+            # 2. Переносим временные файлы в оперативку, а не на диск
+            cursor.execute("PRAGMA temp_store = MEMORY;")
+            
+            # 3. Сжимаем базу (удаляем невидимые пустоты)
+            cursor.execute("VACUUM;")
+            
+            # 4. (Опционально) Если история слишком жирная — чистим старье
+            if db_name == 'mewai.db':
+                # Оставляем только последние 1000 записей в истории
+                cursor.execute("DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY id DESC LIMIT 1000);")
+            
+            conn.commit()
+            conn.close()
+            print(f"✅ База {db_name} успешно оптимизирована!")
+        except Exception as e:
+            print(f"❌ Не удалось починить {db_name}: {e}")
+
+# Вызови это ОДИН РАЗ перед bot.infinity_polling()
+repair_database()
+ 
+
 def init_dataset_db():
     """Создает вечную БД для хранения пар вопрос-ответ"""
     conn = sqlite3.connect('dataset.db')
