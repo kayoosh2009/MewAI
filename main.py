@@ -21,12 +21,12 @@ ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
 # ── Инициализация бота ───────────────────────────────────────
 bot = telebot.TeleBot(TOKEN)
 
-LOG_CHAT_ID = 3722531501
+LOG_CHAT_ID = int(os.getenv('LOG_CHAT_ID', 0))
 def send_log(tag: str, message_text: str):
     now = datetime.datetime.now().strftime("%H:%M:%S")
     payload = f"🕒 `{now}`\n{message_text}\n\n#{tag}"
     try:
-        bot.send_message(LOG_CHAT_ID, payload, parse_mode="Markdown")
+        bot.send_message(LOG_CHAT_ID, payload)
     except Exception as e:
         print(f"❌ Лог не отправлен: {e}")
 
@@ -39,7 +39,7 @@ def get_next_key() -> str:
     if _key_cycle is None:
         _key_cycle = itertools.cycle(API_KEYS)
     return next(_key_cycle)
-    
+
 # ── Каналы для подписки (earn) ───────────────────────────────
 CHANNELS_TO_SUB = [
     {
