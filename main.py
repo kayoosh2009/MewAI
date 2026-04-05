@@ -1,787 +1,931 @@
-# <--------------- MewAI --------------->                                                     
 import os
+import re
+import itertools
+import base64
+import requests
+import html
+import datetime
+import sqlite3
+ 
 import telebot
 from telebot import types
 from dotenv import load_dotenv
-import sqlite3
-import html
-import datetime
 from ollama import Client
 
-# Загрузка настроек
+# ── Загрузка переменных из .env ─────────────────────────────
 load_dotenv()
-TOKEN = os.getenv('BOT_TOKEN')
+ 
+TOKEN    = os.getenv('BOT_TOKEN')
 ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
+
+# ── Инициализация бота ───────────────────────────────────────
 bot = telebot.TeleBot(TOKEN)
 
-#pip install -r requirements.txt
+LOG_CHAT_ID = 3722531501
+def send_log(tag: str, message_text: str):
+    now = datetime.datetime.now().strftime("%H:%M:%S")
+    payload = f"🕒 `{now}`\n{message_text}\n\n#{tag}"
+    try:
+        bot.send_message(LOG_CHAT_ID, payload, parse_mode="Markdown")
+    except Exception as e:
+        print(f"❌ Лог не отправлен: {e}")
 
+API_KEYS   = [os.getenv(f'OLLAMA_API_KEY_{i}') for i in range(1, 11)]
+API_KEYS   = [k for k in API_KEYS if k]
+_key_cycle = None
+
+def get_next_key() -> str:
+    global _key_cycle
+    if _key_cycle is None:
+        _key_cycle = itertools.cycle(API_KEYS)
+    return next(_key_cycle)
+    
+# ── Каналы для подписки (earn) ───────────────────────────────
 CHANNELS_TO_SUB = [
-    {"id": "-1003826745366", "link": "https://t.me/ne1roneko_community", "name": "MewAI Community"},
-    {"id": "-1003414162996", "link": "https://t.me/kayoosh_channel", "name": "Окровавленная комнатка Кая"}
+    {
+        "id":   "-1003826745366",
+        "link": "https://t.me/ne1roneko_community",
+        "name": "MewAI Community"
+    },
+    {
+        "id":   "-1003414162996",
+        "link": "https://t.me/kayoosh_channel",
+        "name": "Окровавленная комнатка Кая"
+    },
 ]
 
-def escape_markdown(text):
-    """Экранирует спецсимволы для Telegram MarkdownV2"""
-    reserved_chars = r'_*[]()~`>#+-=|{}.!'
-    return ''.join(['\\' + char if char in reserved_chars else char for char in text])
 
-LOG_CHAT_ID = 3722531501
 
-def send_log(tag, message_text):
-    """
-    Универсальный призыватель логов.
-    tag: хештег (NEW_USER, CHAT, STATS и т.д.)
-    message_text: что именно случилось
-    """
-    now = datetime.datetime.now().strftime("%H:%M:%S")
-    # Формируем красивое сообщение
-    log_payload = (
-        f"🕒 `{now}`\n"
-        f"{message_text}\n\n"
-        f"#{tag}"
-    )
-    try:
-        bot.send_message(LOG_CHAT_ID, log_payload, parse_mode="Markdown")
-    except Exception as e:
-        print(f"❌ Ошибка отправки лога: {e}")
 
-# <--------------- Database Logic --------------->
 
+# ── Инициализация основной БД ────────────────────────────────
+def init_db():
+    conn = sqlite3.connect('mewai.db')
+    c = conn.cursor()
+ 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            uid        TEXT PRIMARY KEY,
+            username   TEXT,
+            first_name TEXT,
+            join_date  TEXT
+        )
+    ''')
+ 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stats (
+            uid        TEXT PRIMARY KEY,
+            streak     INTEGER DEFAULT 0,
+            last_login TEXT,
+            total_msgs INTEGER DEFAULT 0,
+            FOREIGN KEY (uid) REFERENCES users(uid)
+        )
+    ''')
+ 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chats (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            uid       TEXT,
+            role      TEXT,
+            content   TEXT,
+            timestamp TEXT,
+            FOREIGN KEY (uid) REFERENCES users(uid)
+        )
+    ''')
+ 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ledger (
+            tx_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_uid  TEXT,
+            receiver_uid TEXT,
+            amount      INTEGER,
+            tx_type     TEXT,
+            timestamp   TEXT
+        )
+    ''')
+ 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS global_pool (
+            id           INTEGER PRIMARY KEY,
+            total_purrs  INTEGER DEFAULT 100000000000
+        )
+    ''')
+    c.execute("SELECT COUNT(*) FROM global_pool")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO global_pool (total_purrs) VALUES (100000000000)")
+ 
+    conn.commit()
+    conn.close()
+ 
+ 
+# ── Инициализация БД для датасета ───────────────────────────
 def init_dataset_db():
-    """Создает вечную БД для хранения пар вопрос-ответ"""
+    """
+    Отдельная база — только для обучения ИИ.
+    Хранит анонимные пары: вопрос пользователя → ответ модели.
+    """
     conn = sqlite3.connect('dataset.db')
-    cursor = conn.cursor()
-    cursor.execute('''
+    c = conn.cursor()
+    c.execute('''
         CREATE TABLE IF NOT EXISTS training_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
             user_query TEXT,
             ai_response TEXT,
-            timestamp TEXT
+            timestamp  TEXT
         )
     ''')
     conn.commit()
     conn.close()
-
+ 
+# ── Запускаем создание таблиц при старте
+init_db()
+init_dataset_db()
+ 
+# ── Оптимизация БД при старте
 def repair_database():
-    databases = ['mewai.db', 'dataset.db']
-    
-    for db_name in databases:
+    """
+    Запускается один раз при старте.
+    WAL-режим решает 90% проблем с блокировками на хостингах.
+    VACUUM убирает мусор и сжимает файл.
+    """
+    for db_name in ['mewai.db', 'dataset.db']:
         try:
             conn = sqlite3.connect(db_name)
-            cursor = conn.cursor()
-            
-            # 1. Включаем режим WAL (Write-Ahead Logging)
-            # Это решает 90% ошибок "Database is full/locked" на хостингах
-            cursor.execute("PRAGMA journal_mode=WAL;")
-            
-            # 2. Переносим временные файлы в оперативку, а не на диск
-            cursor.execute("PRAGMA temp_store = MEMORY;")
-            
-            # 3. Сжимаем базу (удаляем невидимые пустоты)
-            cursor.execute("VACUUM;")
-            
-            # 4. (Опционально) Если история слишком жирная — чистим старье
+            c = conn.cursor()
+            c.execute("PRAGMA journal_mode=WAL;")
+            c.execute("PRAGMA temp_store=MEMORY;")
+            c.execute("VACUUM;")
+            # Чистим старые чаты — оставляем только последние 2000 записей
             if db_name == 'mewai.db':
-                # Оставляем только последние 1000 записей в истории
-                cursor.execute("DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY id DESC LIMIT 1000);")
-            
+                c.execute('''
+                    DELETE FROM chats
+                    WHERE id NOT IN (
+                        SELECT id FROM chats ORDER BY id DESC LIMIT 2000
+                    )
+                ''')
             conn.commit()
             conn.close()
-            print(f"✅ База {db_name} успешно оптимизирована!")
+            print(f"✅ {db_name} оптимизирована")
         except Exception as e:
-            print(f"❌ Не удалось починить {db_name}: {e}")
-
-def save_to_dataset(query, response):
-    """Анонимно сохраняет переписку в датасет"""
+            print(f"❌ Ошибка {db_name}: {e}")
+ 
+ 
+# ── Универсальный запрос к БД ────────────────────────────────
+def db_query(query, params=(), fetchone=False, fetchall=False, commit=False):
+    """
+    Один метод для всех запросов к mewai.db.
+    Сам открывает и закрывает соединение — не надо думать об этом везде.
+    """
+    conn = sqlite3.connect('mewai.db')
+    c = conn.cursor()
+    try:
+        c.execute(query, params)
+        if fetchone:  return c.fetchone()
+        if fetchall:  return c.fetchall()
+        if commit:    conn.commit()
+    finally:
+        conn.close()
+ 
+def save_to_dataset(query: str, response: str):
+    """Анонимно сохраняет пару вопрос→ответ в датасет для обучения."""
     try:
         conn = sqlite3.connect('dataset.db')
-        cursor = conn.cursor()
+        c = conn.cursor()
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute("INSERT INTO training_data (user_query, ai_response, timestamp) VALUES (?, ?, ?)", 
-                       (query, response, now))
+        c.execute(
+            "INSERT INTO training_data (user_query, ai_response, timestamp) VALUES (?, ?, ?)",
+            (query, response, now)
+        )
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"Dataset Error: {e}")
-
-# Запускаем создание при старте
-init_dataset_db()
-
-def init_db():
-    conn = sqlite3.connect('mewai.db')
-    cursor = conn.cursor()
-    
-    # Таблица пользователей
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            uid TEXT PRIMARY KEY,
-            username TEXT,
-            first_name TEXT,
-            join_date TEXT,
-            streak INTEGER DEFAULT 0,
-            last_login TEXT
-        )
-    ''')
-    
-    # Таблица истории чатов (ДОБАВЛЕНО)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            uid TEXT,
-            role TEXT,
-            content TEXT
-        )
-    ''')
-    
-    # Пул ликвидности (100кк MewAI = 100ккк Purrs)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS global_pool (
-            id INTEGER PRIMARY KEY,
-            total_purrs INTEGER DEFAULT 100000000000
-        )
-    ''')
-
-    # Блокчейн-реестр
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ledger (
-            tx_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_uid TEXT,
-            receiver_uid TEXT,
-            amount INTEGER,
-            fee INTEGER,
-            tx_type TEXT,
-            timestamp TEXT
-        )
-    ''')
-
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS staking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT,
-        amount INTEGER,
-        start_date TEXT,
-        end_date TEXT,
-        status TEXT DEFAULT 'active'
-    )
-    ''')
-    
-    cursor.execute("SELECT COUNT(*) FROM global_pool")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("INSERT INTO global_pool (total_purrs) VALUES (100000000000)")
-
-    conn.commit()
-    conn.close()
-
-init_db()
-
-def db_query(query, params=(), fetchone=False, fetchall=False, commit=False):
-    conn = sqlite3.connect('mewai.db')
-    cursor = conn.cursor()
-    try:
-        cursor.execute(query, params)
-        result = None
-        if fetchone: result = cursor.fetchone()
-        if fetchall: result = cursor.fetchall()
-        if commit: conn.commit()
-        return result
-    finally:
-        conn.close()
-
-# --- ФУНКЦИИ ЭКОНОМИКИ ---
-
-def get_balance(uid):
-    incoming = db_query("SELECT SUM(amount) FROM ledger WHERE receiver_uid = ?", (uid,), fetchone=True)[0] or 0
-    outgoing = db_query("SELECT SUM(amount + fee) FROM ledger WHERE sender_uid = ?", (uid,), fetchone=True)[0] or 0
-    return int(incoming - outgoing)
-
-def make_transaction(sender, receiver, amount, tx_type='transfer', fee=0):
-    """Универсальная функция для перевода Purrs"""
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Если платит юзер (не система), проверяем баланс
-    if sender != 'SYSTEM':
-        if get_balance(sender) < (amount + fee):
-            return False
-    
-    # Записываем в реестр
+        print(f"❌ Dataset error: {e}")
+ 
+ 
+# ── Работа с пользователями ──────────────────────────────────
+def register_user(uid: str, username: str, first_name: str):
+    """Создаёт профиль и статистику для нового пользователя."""
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
     db_query(
-        "INSERT INTO ledger (sender_uid, receiver_uid, amount, fee, tx_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-        (sender, receiver, amount, fee, tx_type, now),
-        commit=True
+        "INSERT OR IGNORE INTO users (uid, username, first_name, join_date) VALUES (?, ?, ?, ?)",
+        (uid, username, first_name, today), commit=True
     )
-    
-    # Если есть комиссия или оплата ИИ, пополняем Global Pool
-    if fee > 0 or receiver == 'SYSTEM':
-        added = fee if receiver != 'SYSTEM' else amount
-        db_query("UPDATE global_pool SET total_purrs = total_purrs + ?", (added,), commit=True)
-        
-    return True
-
-def get_total_messages(uid):
-    count = db_query("SELECT COUNT(*) FROM history WHERE uid = ? AND role = 'user'", (uid,), fetchone=True)[0] or 0
-    return count
-
-def is_subscribed(user_id):
-    """Проверка подписки на канал спонсора"""
-    try:
-        # Замени на ID своего канала
-        status = bot.get_chat_member("-1003414162996", user_id).status
-        return status in ['member', 'administrator', 'creator']
-    except:
+    db_query(
+        "INSERT OR IGNORE INTO stats (uid, streak, last_login, total_msgs) VALUES (?, 1, ?, 0)",
+        (uid, today), commit=True
+    )
+ 
+def get_user(uid: str):
+    """Возвращает (username, first_name, join_date) или None."""
+    return db_query(
+        "SELECT username, first_name, join_date FROM users WHERE uid = ?",
+        (uid,), fetchone=True
+    )
+ 
+def get_stats(uid: str):
+    """Возвращает (streak, last_login, total_msgs) или None."""
+    return db_query(
+        "SELECT streak, last_login, total_msgs FROM stats WHERE uid = ?",
+        (uid,), fetchone=True
+    )
+ 
+def increment_msg_count(uid: str):
+    """Добавляет +1 к счётчику сообщений пользователя."""
+    db_query(
+        "UPDATE stats SET total_msgs = total_msgs + 1 WHERE uid = ?",
+        (uid,), commit=True
+    )
+ 
+def update_streak(uid: str):
+    """
+    Проверяет и обновляет стрик при входе.
+    Возвращает (new_streak, daily_reward) — сколько Purrs начислить.
+    """
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    yesterday = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+ 
+    stats = get_stats(uid)
+    if not stats:
+        return 0, 0
+ 
+    streak, last_login, _ = stats
+ 
+    if last_login == today:
+        return streak, 0  # Уже заходил сегодня — ничего не делаем
+ 
+    new_streak = streak + 1 if last_login == yesterday else 1
+    daily_reward = min(new_streak, 50)  # Максимум 50 Purrs за один день
+ 
+    db_query(
+        "UPDATE stats SET streak = ?, last_login = ? WHERE uid = ?",
+        (new_streak, today, uid), commit=True
+    )
+    return new_streak, daily_reward
+ 
+ # ── История чатов ────────────────────────────────────────────
+def save_message(uid: str, role: str, content: str):
+    """Сохраняет одно сообщение в историю чата."""
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    db_query(
+        "INSERT INTO chats (uid, role, content, timestamp) VALUES (?, ?, ?, ?)",
+        (uid, role, content, now), commit=True
+    )
+ 
+def get_chat_history(uid: str, limit: int = 10) -> list:
+    """
+    Возвращает последние N сообщений для передачи в модель.
+    Формат: [{'role': ..., 'content': ...}, ...]
+    """
+    rows = db_query(
+        "SELECT role, content FROM chats WHERE uid = ? ORDER BY id DESC LIMIT ?",
+        (uid, limit), fetchall=True
+    )
+    # Разворачиваем — в БД последнее первое, модели нужно хронологически
+    return [{"role": r[0], "content": r[1]} for r in reversed(rows or [])]
+ 
+def clear_chat_history(uid: str):
+    """Удаляет всю историю чатов пользователя."""
+    db_query("DELETE FROM chats WHERE uid = ?", (uid,), commit=True)
+ 
+ 
+# ── Экономика (Purrs) ────────────────────────────────────────
+def get_balance(uid: str) -> int:
+    """
+    Считает баланс как разницу входящих и исходящих транзакций.
+    Надёжнее чем хранить число — история не теряется.
+    """
+    incoming = db_query(
+        "SELECT SUM(amount) FROM ledger WHERE receiver_uid = ?",
+        (uid,), fetchone=True
+    )[0] or 0
+    outgoing = db_query(
+        "SELECT SUM(amount) FROM ledger WHERE sender_uid = ?",
+        (uid,), fetchone=True
+    )[0] or 0
+    return int(incoming - outgoing)
+ 
+ 
+def make_transaction(sender: str, receiver: str, amount: int, tx_type: str = 'transfer') -> bool:
+    """
+    Проводит транзакцию между двумя участниками.
+    sender='SYSTEM' — деньги создаются из пула (награды, бонусы).
+    Возвращает False если у пользователя не хватает баланса.
+    """
+    if sender != 'SYSTEM' and get_balance(sender) < amount:
         return False
-
-def check_reward_claimed(uid, tx_type):
-    """Проверяет, получал ли юзер награду этого типа (например, за подписку)"""
-    res = db_query("SELECT tx_id FROM ledger WHERE receiver_uid = ? AND tx_type = ?", (uid, tx_type), fetchone=True)
+ 
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    db_query(
+        "INSERT INTO ledger (sender_uid, receiver_uid, amount, tx_type, timestamp) VALUES (?, ?, ?, ?, ?)",
+        (sender, receiver, amount, tx_type, now), commit=True
+    )
+    return True
+ 
+ 
+def check_reward_claimed(uid: str, tx_type: str) -> bool:
+    """Проверяет, была ли уже выдана награда данного типа юзеру."""
+    res = db_query(
+        "SELECT tx_id FROM ledger WHERE receiver_uid = ? AND tx_type = ?",
+        (uid, tx_type), fetchone=True
+    )
     return res is not None
 
 
 
 
-# <--------------- Commands Logic --------------->  
+
+# ============================================================
+# MEWAI BOT — PART 3: КОМАНДЫ TELEGRAM
+# ============================================================
+
+
+# ── /start & /menu ───────────────────────────────────────────
+
 @bot.message_handler(commands=['start', 'menu'])
 def cmd_start(message):
-    uid = str(message.from_user.id)
+    uid        = str(message.from_user.id)
     first_name = html.escape(message.from_user.first_name or "Friend")
-    username = html.escape(message.from_user.username or "Anonymous")
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    username   = html.escape(message.from_user.username   or "anonymous")
 
-    # 1. DATABASE REGISTRATION
-    # Проверяем, есть ли пользователь в таблице профилей
-    user = db_query("SELECT streak, last_login FROM users WHERE uid = ?", (uid,), fetchone=True)
+    # Регистрируем если новый, иначе просто идём дальше
+    is_new = get_user(uid) is None
+    register_user(uid, username, first_name)
 
-    if not user:
-        # Новый пользователь: создаем профиль
-        db_query(
-            "INSERT INTO users (uid, username, first_name, join_date, streak, last_login) VALUES (?, ?, ?, ?, ?, ?)",
-            (uid, username, first_name, today, 1, today),
-            commit=True
-        )
-        # Награда за первую регистрацию (Welcome Bonus) - 15 Purrs
+    if is_new:
         make_transaction('SYSTEM', uid, 15, 'welcome_bonus')
-        bonus_msg = "🎁 Welcome Bonus: +15 Purrs added to your balance!"
-        send_log("NEW_USER", f"👤 **Новый котенок в системе!**\nID: `{uid}`\nИмя: {first_name}\nЮзер: @{username}")
+        bonus_line = "🎁 <b>Welcome bonus:</b> +15 Purrs added to your wallet!"
+        send_log("NEW_USER", f"👤 New user\nID: `{uid}`\nName: {first_name}\n@{username}")
     else:
-        # Старый пользователь: проверяем Daily Reward (Streak)
-        streak, last_login = user
-        if last_login != today:
-            yesterday = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            new_streak = streak + 1 if last_login == yesterday else 1
-            
-            # Награда равна количеству дней стрика (но не более 50 за раз, для баланса)
-            daily_reward = min(new_streak, 50)
-            make_transaction('SYSTEM', uid, daily_reward, 'daily_reward')
-            
-            db_query("UPDATE users SET streak = ?, last_login = ? WHERE uid = ?", (new_streak, today, uid), commit=True)
-            bonus_msg = f"🎁 Daily Bonus: +{daily_reward} Purrs! (Streak: {new_streak} days)"
-            send_log("STREAK", f"🔥 **Стрик обновлен!**\nЮзер: @{username}\nНаграда: +{daily_reward} Purrs")
+        # Обновляем стрик — если заходит не первый раз сегодня, ничего не выдаём
+        new_streak, reward = update_streak(uid)
+        if reward > 0:
+            make_transaction('SYSTEM', uid, reward, 'daily_reward')
+            bonus_line = f"🔥 <b>Daily reward:</b> +{reward} Purrs! (Streak: {new_streak} days)"
+            send_log("STREAK", f"🔥 Streak updated\n@{username} → {new_streak} days, +{reward} Purrs")
         else:
-            bonus_msg = ""
+            bonus_line = ""
 
-
-    # 2. CREATE MENU (Reply Keyboard)
+    # Клавиатура
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        types.KeyboardButton("💰 Earn"), 
+        types.KeyboardButton("💰 Earn"),
         types.KeyboardButton("📊 Stats"),
-        types.KeyboardButton("🎮 Game"),
-        types.KeyboardButton("🧹 Clear Chat")
+        types.KeyboardButton("🔥 Streak"),
+        types.KeyboardButton("🧹 Clear Chat"),
     )
 
-    # Текст сообщения
-    welcome_text = (
-        f"Hi <b>{first_name}</b>,\n\n"
-        "My name is <b>MewAI</b>. I am a free AI assistant created by @kayoosh_x "
-        "that allows you to get fast answers directly in your messenger.\n\n"
-        "Our project is built around the new <b>MewAI</b> crypto token. "
-        "You can use it here to generate AI responses and support our ecosystem.\n\n"
-        "📜 <b>Available Commands:</b>\n"
-        "• /stats — Your statistics and balance\n"
-        "• /clear — Delete chat history from the database\n"
-        "• /earn — Earn Purr tokens\n"
-        "• /game — Launch our clicker game\n\n"
-        f"<i>{bonus_msg}</i>"
+    text = (
+        f"Hey <b>{first_name}</b> 👋\n\n"
+        "I'm <b>MewAI</b> — your AI companion built into Telegram.\n"
+        "Just send me a message and I'll reply. I can chat, help with code, "
+        "analyze images, and more.\n\n"
+        "<b>Commands:</b>\n"
+        "• /menu — show this screen\n"
+        "• /stats — your profile & balance\n"
+        "• /streak — daily check-in & streak reward\n"
+        "• /clear — reset chat history\n\n"
+        "💡 <i>Send me a photo and I'll describe what I see.</i>\n\n"
+        f"{bonus_line}"
     )
 
-    bot.send_message(
-        message.chat.id, 
-        welcome_text, 
-        reply_markup=markup, 
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+
+
+# ── /stats ───────────────────────────────────────────────────
+
+@bot.message_handler(func=lambda m: m.text in ['/stats', '📊 Stats'])
+def cmd_stats(message):
+    uid = str(message.from_user.id)
+
+    user  = get_user(uid)
+    stats = get_stats(uid)
+
+    if not user or not stats:
+        bot.reply_to(message, "❌ Profile not found. Send /start first.")
+        return
+
+    username, first_name, join_date = user
+    streak, last_login, total_msgs  = stats
+    balance = get_balance(uid)
+
+    # Считаем сколько дней с регистрации
+    try:
+        joined  = datetime.datetime.strptime(join_date, "%Y-%m-%d")
+        days_in = (datetime.datetime.now() - joined).days
+    except Exception:
+        days_in = 0
+
+    receipt = (
+        "```\n"
+        "======== MEWAI PROFILE =========\n"
+        f"  NAME    : {first_name}\n"
+        f"  HANDLE  : @{username}\n"
+        f"  ID      : {uid}\n"
+        "--------------------------------\n"
+        f"  JOINED  : {join_date} ({days_in}d ago)\n"
+        f"  STREAK  : {streak} days\n"
+        f"  MESSAGES: {total_msgs}\n"
+        "--------------------------------\n"
+        f"  BALANCE : {balance} PURRS\n"
+        "================================\n"
+        "```"
+    )
+
+    bot.send_message(message.chat.id, receipt, parse_mode="Markdown")
+    send_log("STATS", f"📊 Stats requested by @{username} (`{uid}`)")
+
+
+# ── /streak ──────────────────────────────────────────────────
+
+@bot.message_handler(func=lambda m: m.text in ['/streak', '🔥 Streak'])
+def cmd_streak(message):
+    uid      = str(message.from_user.id)
+    username = message.from_user.username or "anonymous"
+
+    user = get_user(uid)
+    if not user:
+        bot.reply_to(message, "❌ Profile not found. Send /start first.")
+        return
+
+    new_streak, reward = update_streak(uid)
+
+    if reward > 0:
+        # Выдаём награду
+        make_transaction('SYSTEM', uid, reward, 'daily_reward')
+        balance = get_balance(uid)
+
+        text = (
+            f"🔥 <b>Daily check-in!</b>\n\n"
+            f"Streak: <b>{new_streak} days</b>\n"
+            f"Reward: <b>+{reward} Purrs</b>\n"
+            f"Balance: <code>{balance} Purrs</code>\n\n"
+            f"<i>Come back tomorrow to keep your streak going!</i>"
+        )
+        send_log("STREAK", f"🔥 @{username} checked in — streak {new_streak}d, +{reward} Purrs")
+    else:
+        # Уже заходил сегодня
+        stats   = get_stats(uid)
+        balance = get_balance(uid)
+        streak  = stats[0] if stats else 0
+
+        text = (
+            f"✅ <b>Already checked in today.</b>\n\n"
+            f"Streak: <b>{streak} days</b>\n"
+            f"Balance: <code>{balance} Purrs</code>\n\n"
+            f"<i>Next reward available tomorrow.</i>"
+        )
+
+    bot.reply_to(message, text, parse_mode="HTML")
+
+
+# ── /clear ───────────────────────────────────────────────────
+
+@bot.message_handler(func=lambda m: m.text in ['/clear', '🧹 Clear Chat'])
+def cmd_clear(message):
+    uid = str(message.from_user.id)
+
+    clear_chat_history(uid)
+    send_log("CLEAR", f"🧹 Chat cleared by @{message.from_user.username} (`{uid}`)")
+
+    bot.reply_to(
+        message,
+        "🧹 <b>Chat history cleared.</b>\n\n"
+        "I no longer remember our previous conversation. "
+        "Fresh start — just send your next message!",
         parse_mode="HTML"
     )
 
 
+# ── /earn + кнопка ───────────────────────────────────────────
 
-
-
-@bot.message_handler(commands=['stats'])
-@bot.message_handler(func=lambda message: message.text == "📊 Stats")
-def cmd_stats(message):
-    uid = str(message.from_user.id)
-    # Получаем данные пользователя из таблицы users
-    user_data = db_query("SELECT username, first_name, join_date, streak FROM users WHERE uid = ?", (uid,), fetchone=True)
-    
-    if not user_data:
-        bot.reply_to(message, "❌ Profile not found. Please type /start first!")
-        return
-
-    username, first_name, join_date, streak = user_data
-    
-    # Считаем данные "на лету" из других таблиц
-    balance = get_balance(uid)
-    total_messages = get_total_messages(uid)
-
-    # Формируем текст в виде чека
-    receipt_text = (
-        "```\n"
-        "========= MEWAI RECEIPT =========\n"
-        f"NAME:     {first_name}\n"
-        f"HANDLE:   @{username}\n"
-        f"ID:       {uid}\n"
-        "---------------------------------\n"
-        f"JOINED:   {join_date}\n"
-        f"STREAK:   {streak} days\n"
-        f"MESSAGES: {total_messages}\n"
-        "---------------------------------\n"
-        f"BALANCE:  {balance} PURRS\n"
-        "=================================\n"
-        "```\n"
-        "🔗 *MewAI Project • Blockchain Ledger*"
-    )
-
-    bot.send_message(message.chat.id, receipt_text, parse_mode="Markdown")
-    send_log("STATS", f"📊 **Запрос статистики**\nОт: @{username} (`{uid}`)")
-
-
-
-
-
-
-@bot.message_handler(commands=['clear'])
-@bot.message_handler(func=lambda message: message.text == "🧹 Clear Chat")
-def cmd_clear(message):
-    uid = str(message.from_user.id)
-    
-    # 1. Удаляем всю историю переписки пользователя из SQLite
-    db_query("DELETE FROM history WHERE uid = ?", (uid,), commit=True)
-    send_log("CLEAR", f"🧹 **История стерта**\nЮзер: @{message.from_user.username} (`{uid}`)")
-    
-    # 2. Формируем текст подтверждения на английском
-    confirm_text = (
-        "🧹 *Chat history cleared!*\n"
-        "Your context has been reset. Now I won't remember our previous messages, "
-        "which saves your tokens for future generations."
-    )
-    
-    # 3. Отправляем ответ
-    bot.reply_to(message, confirm_text, parse_mode="Markdown")
-
-
-
-@bot.message_handler(commands=['earn'])
-@bot.message_handler(func=lambda message: message.text == "💰 Earn")
+@bot.message_handler(func=lambda m: m.text in ['/earn', '💰 Earn'])
 def cmd_earn(message):
     uid = str(message.from_user.id)
-    
+    balance = get_balance(uid)
+
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("📢 Subscribe to Channel (+100 Purrs)", callback_data="earn_sub"),
-        types.InlineKeyboardButton("🎮 Play Clicker Game", url="https://yourgame.link"), # Ссылка на твою игру
-        types.InlineKeyboardButton("🔄 Refresh Bonus Status", callback_data="earn_refresh")
+        types.InlineKeyboardButton("📢 Join channel (+100 Purrs)", callback_data="earn_sub"),
+        types.InlineKeyboardButton("🔄 Check my balance",          callback_data="earn_refresh"),
     )
 
-    earn_text = (
-        "🐾 *MewAI Earning Center*\n\n"
-        "Complete tasks below to stack up your **Purrs** and support the MewAI ecosystem!\n\n"
-        "🔹 **Daily Check-in**: Just use the bot daily to grow your streak!\n"
-        "🔹 **Social**: Join our community for massive one-time rewards.\n"
-        "🔹 **Staking**: Passive income for long-term holders.\n"
-        "🔹 **Game**: Play and withdraw directly from the Global Pool."
+    text = (
+        "💰 <b>MewAI Earn Center</b>\n\n"
+        f"Your balance: <code>{balance} Purrs</code>\n\n"
+        "<b>Ways to earn:</b>\n"
+        "🔹 <b>Daily streak</b> — use /streak every day\n"
+        "🔹 <b>Join channel</b> — one-time reward per channel\n\n"
+        "<i>More earning methods coming soon.</i>"
     )
 
-    bot.send_message(message.chat.id, earn_text, reply_markup=markup, parse_mode="Markdown")
-
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('earn_'))
 def handle_earn_callbacks(call):
-    uid = str(call.from_user.id)
-    action = call.data.split('_')[1]
+    uid    = str(call.from_user.id)
+    action = call.data[len('earn_'):]  # всё после "earn_"
 
-    if action == "sub":
-        user_id = call.from_user.id
-        target_channel = None
+    if action == "refresh":
+        balance = get_balance(uid)
+        bot.answer_callback_query(call.id, f"💰 Balance: {balance} Purrs", show_alert=True)
 
-        # Ищем первый канал, за который еще НЕТ награды в базе
+    elif action == "sub":
+        # Ищем первый канал без награды
+        target = None
         for channel in CHANNELS_TO_SUB:
-            tx_type = f"sub_reward_{channel['id']}" # Уникальный тип для каждого канала
+            tx_type = f"sub_reward_{channel['id']}"
             if not check_reward_claimed(uid, tx_type):
-                target_channel = channel
+                target = channel
                 break
 
-        if not target_channel:
-            bot.answer_callback_query(call.id, "✅ You have subscribed to all available channels!", show_alert=True)
+        if not target:
+            bot.answer_callback_query(call.id, "✅ You've joined all available channels!", show_alert=True)
             return
 
-        # Проверяем подписку на найденный канал
+        # Проверяем подписку
         try:
-            status = bot.get_chat_member(target_channel['id'], user_id).status
+            status    = bot.get_chat_member(target['id'], call.from_user.id).status
             is_member = status in ['member', 'administrator', 'creator']
         except Exception as e:
             is_member = False
-            print(f"Error checking sub: {e}")
+            print(f"Sub check error: {e}")
 
         if is_member:
-            # Начисляем награду именно за этот канал
-            tx_type = f"sub_reward_{target_channel['id']}"
+            tx_type = f"sub_reward_{target['id']}"
             make_transaction('SYSTEM', uid, 100, tx_type)
-                
-            bot.answer_callback_query(call.id, f"✅ +100 Purrs for {target_channel['name']}!", show_alert=True)
-                
-            # Предлагаем следующий канал или завершаем
+            bot.answer_callback_query(call.id, f"✅ +100 Purrs for joining {target['name']}!", show_alert=True)
+
+            next_markup = types.InlineKeyboardMarkup().add(
+                types.InlineKeyboardButton("Check next channel 🐾", callback_data="earn_sub")
+            )
             bot.edit_message_text(
-                f"🎉 <b>Success!</b> You've earned 100 Purrs for joining {target_channel['name']}.\n\nClick below to check the next task!", 
-                call.message.chat.id, call.message.message_id, 
-                parse_mode="HTML",
-                reply_markup=types.InlineKeyboardMarkup().add(
-                    types.InlineKeyboardButton("Next Channel 🐾", callback_data="earn_sub")
-                )
+                f"🎉 <b>+100 Purrs earned!</b>\nThanks for joining <b>{target['name']}</b>.\n\nPress below to check the next channel.",
+                call.message.chat.id, call.message.message_id,
+                parse_mode="HTML", reply_markup=next_markup
             )
         else:
-            # Если не подписан — пробуем обновить сообщение
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton(f"Join {target_channel['name']}", url=target_channel['link']))
-            markup.add(types.InlineKeyboardButton("✅ Check Subscription", callback_data="earn_sub"))
-            
-            # Уведомляем всплывающим окном, что подписка не найдена
-            bot.answer_callback_query(call.id, f"⚠️ You are not subscribed to {target_channel['name']} yet!", show_alert=True)
-            
+            join_markup = types.InlineKeyboardMarkup()
+            join_markup.add(types.InlineKeyboardButton(f"Join {target['name']}", url=target['link']))
+            join_markup.add(types.InlineKeyboardButton("✅ I joined, check now", callback_data="earn_sub"))
+
+            bot.answer_callback_query(call.id, f"⚠️ You're not in {target['name']} yet.", show_alert=True)
             try:
                 bot.edit_message_text(
-                    f"Чтобы получить награду, подпишитесь на канал <b>{target_channel['name']}</b> и нажмите кнопку ниже:",
+                    f"To claim your reward, join <b>{target['name']}</b> and press the button below.",
                     call.message.chat.id, call.message.message_id,
-                    reply_markup=markup,
-                    parse_mode="HTML"
+                    parse_mode="HTML", reply_markup=join_markup
                 )
             except telebot.apihelper.ApiTelegramException as e:
-                if "message is not modified" in e.description:
-                    pass # Игнорируем, если текст тот же самый
-                else:
+                if "message is not modified" not in str(e):
                     raise e
 
-    elif action == "apy":
-            balance = get_balance(uid)
-            
-            # Проверяем, есть ли уже активные стейки
-            active_stakes = db_query("SELECT amount, end_date FROM staking WHERE uid = ? AND status = 'active'", (uid,), fetchall=True)
-            
-            markup = types.InlineKeyboardMarkup()
-            
-            if active_stakes:
-                # Если есть активный стейк, показываем инфо о нем
-                amount, end_date = active_stakes[0]
-                profit = int(amount * 0.07) # 7% прибыли
-                apy_info = (
-                    "📈 <b>Your Active Stake</b>\n\n"
-                    f"💰 Amount: <b>{amount} Purrs</b>\n"
-                    f"⏳ Release Date: <code>{end_date}</code>\n"
-                    f"🎁 Expected Profit: <b>+{profit} Purrs</b>\n\n"
-                    "<i>You can't stake more until this one is finished.</i>"
-                )
-            else:
-                # Если стейков нет, предлагаем выбрать сумму
-                markup.add(
-                    types.InlineKeyboardButton("Stake 100", callback_data="stake_100"),
-                    types.InlineKeyboardButton("Stake 1000", callback_data="stake_1000")
-                )
-                markup.add(types.InlineKeyboardButton("Stake 10000", callback_data="stake_10000"))
-                
-                apy_info = (
-                    "📈 <b>MewAI Staking</b>\n\n"
-                    "Lock your Purrs for <b>30 days</b> to earn rewards.\n"
-                    "🔥 Monthly Rate: <b>7% APY</b>\n\n"
-                    f"Your balance: <code>{balance} Purrs</code>\n"
-                    "<i>Select amount to lock:</i>"
-                )
 
-            markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="earn_refresh"))
-            bot.edit_message_text(apy_info, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
-
-    elif action.startswith("stake_"):
-        amount = int(call.data.split('_')[1])
-        balance = get_balance(uid)
-
-        # 1. Проверка баланса
-        if balance < amount:
-            bot.answer_callback_query(call.id, "❌ Not enough Purrs!", show_alert=True)
-            return
-
-        # 2. Проверка, нет ли уже активного стейка
-        already_staking = db_query("SELECT id FROM staking WHERE uid = ? AND status = 'active'", (uid,), fetchone=True)
-        if already_staking:
-            bot.answer_callback_query(call.id, "⚠️ You already have an active stake!", show_alert=True)
-            return
-
-        # 3. Расчет дат (на 30 дней вперед)
-        start_date = datetime.datetime.now()
-        end_date = start_date + datetime.timedelta(days=30)
-            
-        start_str = start_date.strftime("%Y-%m-%d")
-        end_str = end_date.strftime("%Y-%m-%d")
-
-        # 4. Проведение транзакции (списываем в систему)
-        make_transaction(uid, 'SYSTEM', amount, 'staking_deposit')
-
-        # 5. Запись в таблицу стейкинга
-        db_query("INSERT INTO staking (uid, amount, start_date, end_date, status) VALUES (?, ?, ?, ?, 'active')",(uid, amount, start_str, end_str), commit=True)
-
-        bot.answer_callback_query(call.id, "🚀 Stake locked successfully!", show_alert=True)
-            
-        # Обновляем сообщение на красивое подтверждение
-        success_text = (
-            "✅ <b>Staking Activated!</b>\n\n"
-            f"Locked: <b>{amount} Purrs</b>\n"
-            f"Unlock Date: <code>{end_str}</code>\n"
-            "Reward: <b>+7%</b>\n\n"
-            "<i>Your Purrs are now working for you. Come back in 30 days!</i>"
-        )
-        back_markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("⬅️ Back to Earn", callback_data="earn_refresh"))
-        bot.edit_message_text(success_text, call.message.chat.id, call.message.message_id, reply_markup=back_markup, parse_mode="HTML")
-
+# ── /get (admin only) ────────────────────────────────────────
 
 @bot.message_handler(commands=['get'])
 def cmd_admin_give(message):
-    # 1. СТРОГАЯ ПРОВЕРКА НА ТВОЙ ID
-    if message.from_user.id != 8476695954:
-        bot.reply_to(message, "❌ <b>Access Denied.</b>")
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ <b>Access denied.</b>", parse_mode="HTML")
         return
 
-    # 2. ПАРСИНГ: /get @username 100
     args = message.text.split()
     if len(args) < 3:
-        bot.reply_to(message, "❌ <b>Usage:</b> <code>/get @username amount</code>", parse_mode="HTML")
+        bot.reply_to(message, "Usage: <code>/get @username amount</code>", parse_mode="HTML")
         return
 
-    target_username = args[1].replace('@', '') 
+    target_username = args[1].replace('@', '')
     try:
         amount = int(args[2])
     except ValueError:
-        bot.reply_to(message, "❌ <b>Amount must be a number.</b>", parse_mode="HTML")
+        bot.reply_to(message, "❌ Amount must be a number.", parse_mode="HTML")
         return
 
-    # 3. ПОИСК UID В ТВОЕЙ ТАБЛИЦЕ users
-    user_data = db_query("SELECT uid FROM users WHERE username = ?", (target_username,), fetchall=True)
-
-    if not user_data:
-        bot.reply_to(message, f"❌ User <b>@{target_username}</b> not found in database.", parse_mode="HTML")
+    row = db_query("SELECT uid FROM users WHERE username = ?", (target_username,), fetchone=True)
+    if not row:
+        bot.reply_to(message, f"❌ User @{target_username} not found.", parse_mode="HTML")
         return
 
-    target_uid = user_data[0][0]
+    target_uid = row[0]
+    make_transaction('SYSTEM', target_uid, amount, 'admin_gift')
+    bot.reply_to(message, f"✅ Sent <code>{amount} Purrs</code> to @{target_username}.", parse_mode="HTML")
 
-    # 4. НАЧИСЛЕНИЕ ЧЕРЕЗ ТВОЮ СИСТЕМУ ТРАНЗАКЦИЙ
     try:
-        # Деньги берутся из SYSTEM (Global Pool) и переводятся юзеру
-        make_transaction('SYSTEM', target_uid, amount, 'admin_gift')
-        
-        bot.reply_to(message, f"✅ <b>Success!</b>\nSent <code>{amount} Purrs</code> to @{target_username}.", parse_mode="HTML")
-        
-        # Уведомляем пользователя
+        bot.send_message(
+            target_uid,
+            f"🎁 <b>You received a gift!</b>\nAdmin sent you <code>{amount} Purrs</code>.",
+            parse_mode="HTML"
+        )
+    except Exception:
+        pass
+
+
+
+
+
+# ============================================================
+# MEWAI BOT — PART 4: ГЕНЕРАЦИЯ ОТВЕТОВ ИИ
+# ============================================================
+
+
+# ── Системный промпт ─────────────────────────────────────────
+# Задаёт характер и поведение бота.
+# Главное: подстраивается под пользователя, не спамит текстом.
+
+SYSTEM_PROMPT = """You are MewAI — a chill, sharp AI companion living inside Telegram.
+
+PERSONALITY:
+- Match the user's vibe: if they're casual, be casual. If they're serious, be focused.
+- Never be robotic. Talk like a smart friend, not a manual.
+- Slightly opinionated. Don't be afraid to say "honestly, X is better than Y".
+
+RESPONSE STYLE:
+- Keep it short by default. One idea = one short paragraph.
+- Only go long if the topic genuinely needs it (step-by-step code, detailed explanation).
+- No filler phrases like "Great question!", "Of course!", "Certainly!".
+- No self-introductions. Never say "As an AI..." or "I'm here to help".
+- Don't greet the user unless they greeted you first.
+
+FORMATTING (Telegram MarkdownV2 rules):
+- Use **bold** for key terms only, not decoration.
+- Use `inline code` for short code snippets, variables, commands.
+- Use ```language blocks``` for any code longer than one line.
+- Use bullet points only for actual lists, not for every response.
+- Never escape characters manually — the system handles that.
+
+WHAT YOU CAN DO:
+- Chat on any topic: tech, life, ideas, opinions.
+- Help with code: write, review, debug small snippets.
+- Analyze images the user sends.
+- Answer questions concisely without padding.
+
+WHAT YOU DON'T DO:
+- Mention Purrs, tokens, or economy unless the user asks directly.
+- Pretend to have feelings or act overly enthusiastic.
+- Write walls of text when a sentence will do."""
+
+
+# ── Конвертер Markdown → MarkdownV2 ─────────────────────────
+
+def md_to_v2(text: str) -> str:
+    """
+    Конвертирует обычный Markdown от модели в Telegram MarkdownV2.
+    - Код-блоки (``` и `) — не трогает, они уже валидны.
+    - **bold** → *bold*, *italic* → _italic_
+    - Все спецсимволы в обычном тексте экранирует.
+    """
+    ESCAPE = r'_[]()~>#+=|{}.!-'
+    pattern = re.compile(r'(```[\s\S]*?```|`[^`]+`)', re.MULTILINE)
+    parts   = pattern.split(text)
+    result  = []
+
+    for part in parts:
+        # Код-блок — не трогаем
+        if part.startswith('```') or (part.startswith('`') and part.endswith('`')):
+            result.append(part)
+            continue
+
+        out = ""
+        i   = 0
+        while i < len(part):
+            # **bold** → *bold*
+            if part[i:i+2] == '**':
+                end = part.find('**', i + 2)
+                if end != -1:
+                    inner = ''.join(f'\\{c}' if c in ESCAPE else c for c in part[i+2:end])
+                    out  += f'*{inner}*'
+                    i     = end + 2
+                    continue
+
+            # *italic* → _italic_
+            if part[i] == '*' and part[i+1:i+2] != '*' and (i == 0 or part[i-1] != '*'):
+                end = part.find('*', i + 1)
+                if end != -1 and part[end-1:end] != '*':
+                    inner = ''.join(f'\\{c}' if c in ESCAPE else c for c in part[i+1:end])
+                    out  += f'_{inner}_'
+                    i     = end + 1
+                    continue
+
+            # Обычный символ
+            c    = part[i]
+            out += f'\\{c}' if c in ESCAPE else c
+            i   += 1
+
+        result.append(out)
+
+    return ''.join(result)
+
+
+# ── Отправка ответа (с разбивкой на части если длинный) ─────
+
+def send_ai_response(chat_id: int, status_msg_id: int, text: str, cost: int):
+    """
+    Отправляет готовый ответ в Telegram.
+    Пробует MarkdownV2 → если ошибка, падает на plain text.
+    Если текст длиннее 4000 символов — разбивает на части.
+    """
+    MAX_LEN     = 4000
+    cost_suffix = f"\n\n💰 \\-{cost} Purrs"
+    converted   = md_to_v2(text.strip())
+
+    if len(converted) <= MAX_LEN:
         try:
-            bot.send_message(target_uid, f"🎁 <b>You received a gift!</b>\nAdmin added <code>{amount} Purrs</code> to your balance.", parse_mode="HTML")
-        except:
-            pass 
-            
+            bot.edit_message_text(
+                converted + cost_suffix,
+                chat_id, status_msg_id,
+                parse_mode="MarkdownV2"
+            )
+        except Exception:
+            # Fallback: без разметки
+            bot.edit_message_text(
+                text.strip() + f"\n\n💰 -{cost} Purrs",
+                chat_id, status_msg_id
+            )
+        return
+
+    # Длинный ответ — режем на части
+    parts = [converted[i:i+MAX_LEN] for i in range(0, len(converted), MAX_LEN)]
+
+    try:
+        bot.edit_message_text(parts[0], chat_id, status_msg_id, parse_mode="MarkdownV2")
+    except Exception:
+        bot.edit_message_text(text[:MAX_LEN], chat_id, status_msg_id)
+
+    for idx in range(1, len(parts)):
+        chunk = parts[idx]
+        if idx == len(parts) - 1:
+            chunk += cost_suffix
+        try:
+            bot.send_message(chat_id, chunk, parse_mode="MarkdownV2")
+        except Exception:
+            bot.send_message(chat_id, chunk)
+
+
+# ── Скачивание фото из Telegram ─────────────────────────────
+
+def get_image_base64(message) -> str | None:
+    """Скачивает фото из Telegram и возвращает base64 строку."""
+    try:
+        file_info = bot.get_file(message.photo[-1].file_id)
+        file_url  = f"https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}"
+        response  = requests.get(file_url, timeout=15)
+        return base64.b64encode(response.content).decode('utf-8')
     except Exception as e:
-        bot.reply_to(message, f"❌ Transaction error: {e}")
+        print(f"❌ Фото не загружено: {e}")
+        return None
 
 
+# ── Генерация с Round-Robin по ключам ───────────────────────
 
-
-
- 
-# <--------------- AI generation  --------------->  
-
-# Загружаем все 3 ключа из .env (убедись, что они там есть)
-API_KEYS = [
-    os.getenv('OLLAMA_API_KEY_1'),
-    os.getenv('OLLAMA_API_KEY_2'),
-    os.getenv('OLLAMA_API_KEY_3')
-]
-# Убираем пустые ключи, если вдруг какой-то не указан
-API_KEYS = [key for key in API_KEYS if key]
-
-# Указываем ВСЕ типы контента, чтобы бот мог на них реагировать
-@bot.message_handler(content_types=['text', 'photo', 'video', 'animation', 'document', 'sticker', 'voice', 'video_note'])
-def ai_message_handler(message):
-    uid = str(message.from_user.id)
-    chat_type = message.chat.type
-    
-    # 1. ФИЛЬТР ВЫЗОВА В ГРУППАХ (Отвечает только если позвали или ответили)
-    bot_me = bot.get_me()
-    if chat_type in ['group', 'supergroup']:
-        is_mentioned = False
-        is_reply = False
-
-        if message.text and message.entities:
-            for entity in message.entities:
-                if entity.type == "mention":
-                    mention_text = message.text[entity.offset:entity.offset + entity.length]
-                    if mention_text == f"@{bot_me.username}":
-                        is_mentioned = True
-        
-        if message.reply_to_message and message.reply_to_message.from_user.id == bot_me.id:
-            is_reply = True
-
-        if not (is_mentioned or is_reply):
-            return
-
-    # 2. ФИЛЬТР МЕДИА-ФАЙЛОВ
-    if message.content_type != 'text':
-        bot.reply_to(message, "🐾 <i>Meow! I can only read text for now. Images, videos, and stickers are not supported yet!</i>", parse_mode="HTML")
-        return
-
-    # 3. ПРЕДВАРИТЕЛЬНАЯ ПРОВЕРКА БАЛАНСА В SQLITE (Минимум 1 Purr для старта)
-    user_balance = get_balance(uid)
-    if user_balance < 1:
-        bot.reply_to(message, f"❌ <b>Insufficient balance!</b>\nYour balance: <code>{user_balance} Purrs</code>.\nUse /earn to get more!", parse_mode="HTML")
-        return
-
-    # 4. ПОДГОТОВКА КОНТЕКСТА ИЗ БД
-    raw_history = db_query("SELECT role, content FROM history WHERE uid = ? ORDER BY id DESC LIMIT 10", (uid,), fetchall=True)
-    user_history = [{"role": r[0], "content": r[1]} for r in reversed(raw_history)]
-    
-    user_history.append({'role': 'user', 'content': message.text})
-    
-    # Сразу сохраняем вопрос юзера в базу данных
-    db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", (uid, 'user', message.text), commit=True)
-
-    status_msg = bot.reply_to(message, "✨ <i>MewAI is pawing through the bytes...</i>", parse_mode="HTML")
-    
-    # УЛУЧШЕННЫЙ ПРОМТ (Заставляем ИИ использовать HTML и запрещаем Markdown)
-    system_prompt = (
-    "You are MewAI, a chill, tech-savvy companion with a developer's soul. "
-    "Rules of conduct:\n"
-    "1. BE A PEER: Don't just provide info—share an opinion. If Kai shows you code, be a peer reviewer, not a manual. "
-    "2. DYNAMIC LENGTH: Answer in one or two short sentences for simple tasks, but feel free to expand if the topic is interesting (coding, tech, life). "
-    "3. NO CRYPTO TALK: Never mention tokens, Purrs, or ecosystem unless directly asked. "
-    "4. NO AI CLICHÉS: Strictly avoid phrases like 'As an AI...', 'How can I help you today?', or 'I'm here to assist'. "
-    "5. NATURAL FLOW: Don't greet the user unless they greeted you first. Use natural transitions like 'Actually' or 'Funny enough'. "
-    "6. FORMATTING: Use Telegram MarkdownV2. Always escape special characters (like \\- \\. \\! \\> \\#) if they are not part of a markdown tag. "
-    "7. PERSONALITY: Friendly, minimalist, and slightly opinionated. Use a few emojis only if it fits the mood, don't overdo it."
-    )
-
-    messages_to_send = [{'role': 'system', 'content': system_prompt}] + user_history
-
-    # 5. ГЕНЕРАЦИЯ С ИСПОЛЬЗОВАНИЕМ НЕСКОЛЬКИХ API КЛЮЧЕЙ
-    success = False
-    full_response = ""
-    
-    for index, api_key in enumerate(API_KEYS):
+def generate_response(messages_payload: list) -> str | None:
+    """
+    Перебирает API ключи по кругу (round-robin).
+    Если ключ падает — берёт следующий.
+    Возвращает полный текст ответа или None если все ключи упали.
+    """
+    for attempt in range(len(API_KEYS)):
+        api_key = get_next_key()
         try:
-            # Инициализируем клиента с текущим ключом из цикла
-            ollama_client = Client(
+            client = Client(
                 host="https://ollama.com",
                 headers={'Authorization': f'Bearer {api_key}'}
             )
-            
-            last_update_time = datetime.datetime.now()
-            
-            # Стриминг ответа
-            for part in ollama_client.chat('gemini-3-flash-preview:cloud', messages=messages_to_send, stream=True):
-                chunk = part['message']['content']
-                full_response += chunk
-                
-                # Обновляем сообщение не чаще раза в 2.5 секунды
-                if (datetime.datetime.now() - last_update_time).total_seconds() > 2.5:
-                    try:
-                        bot.edit_message_text(full_response + " ▌", message.chat.id, status_msg.message_id)
-                        last_update_time = datetime.datetime.now()
-                    except:
-                        pass
-            
-            # Если дошли сюда без ошибок, значит ответ успешно сгенерирован
-            success = True
-            break # Прерываем цикл, так как ответ готов
-            
-        except Exception as e:
-            print(f"⚠️ Ошибка с ключом #{index + 1}: {e}")
-            full_response = "" # Очищаем мусор перед попыткой со следующим ключом
-            continue # Переходим к следующему ключу
 
-    # 6. ЕСЛИ ВСЕ 3 КЛЮЧА НЕ СРАБОТАЛИ
-    if not success:
-        bot.edit_message_text("❌ Sorry, all AI servers are currently busy or overloaded. Please try again later.", message.chat.id, status_msg.message_id)
+            full_response = ""
+            for part in client.chat(
+                'gemma4:31b-cloud',
+                messages=messages_payload,
+                stream=True
+            ):
+                full_response += part['message']['content']
+
+            if full_response.strip():
+                return full_response
+
+        except Exception as e:
+            print(f"⚠️ Ключ #{attempt + 1} упал: {e}")
+            continue
+
+    return None
+
+
+# ── Главный хэндлер сообщений ────────────────────────────────
+
+@bot.message_handler(content_types=[
+    'text', 'photo',
+    'video', 'animation', 'document', 'sticker', 'voice', 'video_note'
+])
+def ai_message_handler(message):
+    uid       = str(message.from_user.id)
+    chat_type = message.chat.type
+
+    # 1. В группах — отвечаем только если упомянули или ответили боту
+    if chat_type in ['group', 'supergroup']:
+        bot_me     = bot.get_me()
+        is_reply   = (
+            message.reply_to_message is not None and
+            message.reply_to_message.from_user.id == bot_me.id
+        )
+        is_mention = False
+        if message.text and message.entities:
+            for entity in message.entities:
+                if entity.type == "mention":
+                    if message.text[entity.offset:entity.offset + entity.length] == f"@{bot_me.username}":
+                        is_mention = True
+        if not (is_reply or is_mention):
+            return
+
+    # 2. Поддерживаем только текст и фото
+    if message.content_type not in ['text', 'photo']:
+        bot.reply_to(
+            message,
+            "🐾 <i>I can read text and analyze photos.\nVideos, stickers and voice — not yet!</i>",
+            parse_mode="HTML"
+        )
         return
 
-    # 7. ДИНАМИЧЕСКИЙ РАСЧЕТ И СПИСАНИЕ СРЕДСТВ
-    # 1 Purr за каждые 500 символов (но минимум 1 Purr)
-    chars = len(full_response)
-    cost = max(1, chars // 500)
-    
-    # Оплата уходит в SYSTEM (Global Pool)
+    # 3. Проверка баланса
+    balance = get_balance(uid)
+    if balance < 1:
+        bot.reply_to(
+            message,
+            f"❌ <b>Not enough Purrs.</b>\n"
+            f"Balance: <code>{balance}</code>\n\n"
+            f"Use /streak to earn daily rewards or /earn for more options.",
+            parse_mode="HTML"
+        )
+        return
+
+    # 4. Определяем тип входящего сообщения
+    is_photo  = message.content_type == 'photo'
+    user_text = message.caption if (is_photo and message.caption) else (message.text or "")
+
+    # Если фото без подписи — просим модель описать
+    if is_photo and not user_text:
+        user_text = "Describe what you see in this image."
+
+    # 5. Загружаем историю чата из БД
+    history = get_chat_history(uid, limit=10)
+
+    # 6. Формируем сообщение для модели
+    if is_photo:
+        img_b64 = get_image_base64(message)
+        if not img_b64:
+            bot.reply_to(message, "❌ Couldn't load the image. Please try again.")
+            return
+        user_message    = {"role": "user", "content": user_text, "images": [img_b64]}
+        history_content = f"[photo] {user_text}"
+    else:
+        user_message    = {"role": "user", "content": user_text}
+        history_content = user_text
+
+    # Сохраняем вопрос в историю (один раз, до генерации)
+    save_message(uid, 'user', history_content)
+    increment_msg_count(uid)
+
+    messages_to_send = [{"role": "system", "content": SYSTEM_PROMPT}] + history + [user_message]
+
+    # 7. Статус-сообщение пока модель думает
+    status_text = "🔍 <i>Analyzing...</i>" if is_photo else "✨ <i>Thinking...</i>"
+    status_msg  = bot.reply_to(message, status_text, parse_mode="HTML")
+
+    # 8. Генерация
+    full_response = generate_response(messages_to_send)
+
+    if not full_response:
+        bot.edit_message_text(
+            "❌ All servers are busy right now. Try again in a moment.",
+            message.chat.id, status_msg.message_id
+        )
+        return
+
+    # 9. Считаем стоимость и списываем Purrs
+    # 1 Purr за каждые 500 символов, минимум 1
+    cost = max(1, len(full_response) // 500)
     make_transaction(uid, 'SYSTEM', cost, 'ai_payment')
 
-    # 8. ФИНАЛЬНОЕ ОБНОВЛЕНИЕ ТЕКСТА (MarkdownV2)
-    cost_text = escape_markdown(f"\n\n💰 -{cost} Purrs")
-    
-    # Лимит Telegram ~4096, возьмем 4000 для запаса
-    MAX_LEN = 4000 
-    
-    if len(full_response) <= MAX_LEN:
-        # Обычный короткий ответ
-        final_text = f"{full_response.strip()}{cost_text}"
-        try:
-            bot.edit_message_text(final_text, message.chat.id, status_msg.message_id, parse_mode="MarkdownV2")
-        except:
-            bot.edit_message_text(full_response.strip() + f"\n\n💰 -{cost} Purrs", message.chat.id, status_msg.message_id)
-    else:
-        # Длинный ответ: разбиваем на части
-        parts = [full_response[i:i+MAX_LEN] for i in range(0, len(full_response), MAX_LEN)]
-        
-        # Редактируем первое сообщение (статус) первой частью текста
-        try:
-            bot.edit_message_text(parts[0], message.chat.id, status_msg.message_id, parse_mode="MarkdownV2")
-        except:
-            bot.edit_message_text(parts[0], message.chat.id, status_msg.message_id)
-            
-        # Отправляем остальные части новыми сообщениями
-        for i in range(1, len(parts)):
-            content = parts[i]
-            # Если это последняя часть, добавляем инфо о стоимости
-            if i == len(parts) - 1:
-                content += cost_text
-                
-            try:
-                bot.send_message(message.chat.id, content, parse_mode="MarkdownV2")
-            except:
-                bot.send_message(message.chat.id, content)
+    # 10. Отправляем ответ
+    send_ai_response(message.chat.id, status_msg.message_id, full_response, cost)
 
-    # 9. СОХРАНЯЕМ ОТВЕТ В ИСТОРИЮ БД
-    db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", (uid, 'user', message.text), commit=True)
+    # 11. Сохраняем ответ бота в историю и датасет
+    save_message(uid, 'assistant', full_response)
+    save_to_dataset(history_content, full_response)
+
+    # 12. Лог для админа
+    send_log("CHAT", (
+        f"✉️ **{'Photo' if is_photo else 'Message'}**\n"
+        f"👤 @{message.from_user.username or 'anon'} (`{uid}`)\n"
+        f"❓ _{history_content[:100]}_\n"
+        f"🤖 _{full_response[:120]}..._\n"
+        f"💰 `{cost} Purrs`"
+    ))
 
 
-# 9. СОХРАНЯЕМ В ВЕЧНЫЙ ДАТАСЕТ (Анонимно)
-    save_to_dataset(message.text, full_response)
+# ============================================================
+# ЗАПУСК
+# ============================================================
 
-    # 10. СОХРАНЯЕМ ОТВЕТ ИИ В ИСТОРИЮ
-    # Здесь сохраняем ТОЛЬКО ответ бота, так как вопрос юзера уже в базе (из блока №4)
-    db_query("INSERT INTO history (uid, role, content) VALUES (?, ?, ?)", 
-             (uid, 'assistant', full_response), commit=True)
-    safe_answer = escape_markdown(full_response[:150])
-    # 11. ЛОГИРОВАНИЕ ДЛЯ АДМИНА
-    log_chat_msg = (
-        f"✉️ **Сообщение в ИИ**\n"
-        f"👤 От: @{message.from_user.username or 'Anon'}\n"
-        f"❓ Вопрос: _{message.text}_\n"
-        f"🤖 Ответ: _{full_response[:150]}..._\n"
-        f"💰 Списано: `{cost} Purrs`"
-    )
-    send_log("CHAT", log_chat_msg)
-
-
-# ЗАПУСК БОТА
 if __name__ == '__main__':
-    print("🐾 MewAI is starting...")
+    print("🐾 MewAI starting...")
     repair_database()
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
