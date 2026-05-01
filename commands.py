@@ -8,6 +8,7 @@ import database as db
 
 router = Router()
 
+CHANNEL_ID = -1003414162996
 
 # ── Вспомогательные функции ──────────────────────────────────
 
@@ -31,6 +32,68 @@ def back_to_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="← Back to menu", callback_data="cmd_menu")]
     ])
+
+def get_active_promo(code: str) -> dict | None:
+    """Возвращает промокод если он существует и ещё активен."""
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    res = (
+        db.supabase.table("promo_codes")
+        .select("code, reward, expires_at")
+        .eq("code", code.upper())
+        .eq("is_active", True)
+        .gte("expires_at", now)
+        .maybe_single()
+        .execute()
+    )
+    return res.data
+ 
+ 
+def already_redeemed(uid: str, code: str) -> bool:
+    """Проверяет, использовал ли юзер этот промокод."""
+    res = (
+        db.supabase.table("promo_redemptions")
+        .select("id")
+        .eq("uid", uid)
+        .eq("code", code.upper())
+        .maybe_single()
+        .execute()
+    )
+    return bool(res.data)
+ 
+ 
+def redeem_code(uid: str, code: str, reward: int) -> bool:
+    """
+    Фиксирует использование промокода и начисляет Purrs.
+    Возвращает False если гонка записей (код уже был активирован параллельно).
+    """
+    try:
+        db.supabase.table("promo_redemptions").insert({
+            "uid":  uid,
+            "code": code.upper(),
+        }).execute()
+    except Exception:
+        # unique(uid, code) сработал — юзер успел использовать код дважды
+        return False
+ 
+    db.make_transaction("SYSTEM", uid, reward, f"promo_{code.upper()}")
+    return True
+ 
+ 
+def time_left(expires_at: str) -> str:
+    """Возвращает строку с оставшимся временем до истечения промокода."""
+    try:
+        exp = datetime.datetime.fromisoformat(expires_at)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        delta = exp - now
+        if delta.total_seconds() <= 0:
+            return "expired"
+        hours, rem = divmod(int(delta.total_seconds()), 3600)
+        minutes    = rem // 60
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
+    except Exception:
+        return "unknown"
 
 
 # ============================================================
@@ -358,3 +421,74 @@ async def cb_earn(call: CallbackQuery):
 
     await call.message.edit_text(text, parse_mode="HTML", reply_markup=back_to_menu_keyboard())
     await call.answer()
+
+
+
+# ============================================================
+# /redeem
+# ============================================================
+ 
+@router.message(Command("redeem"))
+async def cmd_redeem(message: Message):
+    uid  = str(message.from_user.id)
+    args = message.text.split(maxsplit=1)
+ 
+    # Нет аргумента — подсказка
+    if len(args) < 2 or not args[1].strip():
+        await message.answer(
+            "🎟 <b>Redeem a promo code</b>\n\n"
+            "Usage: <code>/redeem CODE</code>\n\n"
+            "Daily codes are posted in the channel.\n"
+            "Each code gives <b>+10 Purrs</b> and lasts <b>24 hours.</b>",
+            parse_mode="HTML"
+        )
+        return
+ 
+    code = args[1].strip().upper()
+ 
+    # Юзер зарегистрирован?
+    if not db.get_user(uid):
+        await message.answer("❌ Send /start first to register.")
+        return
+ 
+    # Промокод существует и не истёк?
+    promo = get_active_promo(code)
+    if not promo:
+        await message.answer(
+            "❌ <b>Invalid or expired code.</b>\n\n"
+            "Check the channel for the latest daily code.",
+            parse_mode="HTML"
+        )
+        return
+ 
+    # Уже использован этим юзером?
+    if already_redeemed(uid, code):
+        left = time_left(promo["expires_at"])
+        await message.answer(
+            f"⚠️ <b>Already redeemed.</b>\n\n"
+            f"You've already used code <code>{code}</code>.\n"
+            f"Next code drops in ~<b>{left}</b>.",
+            parse_mode="HTML"
+        )
+        return
+ 
+    # Всё ок — начисляем
+    success = redeem_code(uid, code, promo["reward"])
+    if not success:
+        await message.answer(
+            "⚠️ <b>Already redeemed.</b>\n\n"
+            "Looks like you used this code just now.",
+            parse_mode="HTML"
+        )
+        return
+ 
+    balance = db.get_balance(uid)
+    left    = time_left(promo["expires_at"])
+ 
+    await message.answer(
+        f"✅ <b>Code redeemed!</b>\n\n"
+        f"<code>{code}</code> → <b>+{promo['reward']} Purrs</b>\n"
+        f"Balance: <code>{balance} Purrs</code>\n\n"
+        f"<i>Code expires in {left}.</i>",
+        parse_mode="HTML"
+    )
