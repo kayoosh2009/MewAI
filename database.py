@@ -25,7 +25,7 @@ def register_user(uid: str, username: str, first_name: str) -> bool:
         supabase.table("users")
         .select("uid")
         .eq("uid", uid)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
     if existing.data:
@@ -56,10 +56,10 @@ def get_user(uid: str) -> dict | None:
         supabase.table("users")
         .select("username, first_name, join_date")
         .eq("uid", uid)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
-    return res.data
+    return res.data[0] if res.data else None
 
 
 def get_stats(uid: str) -> dict | None:
@@ -68,10 +68,10 @@ def get_stats(uid: str) -> dict | None:
         supabase.table("stats")
         .select("streak, last_login, total_msgs")
         .eq("uid", uid)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
-    return res.data
+    return res.data[0] if res.data else None
 
 
 def increment_msg_count(uid: str):
@@ -115,6 +115,18 @@ def update_username(uid: str, username: str, first_name: str):
         "username":   username,
         "first_name": first_name,
     }).eq("uid", uid).execute()
+
+
+def get_user_by_username(username: str) -> dict | None:
+    """Ищет пользователя по username (для /get команды)."""
+    res = (
+        supabase.table("users")
+        .select("uid, username, first_name")
+        .eq("username", username.lstrip("@"))
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
 
 
 # ============================================================
@@ -276,15 +288,6 @@ def get_all_user_ids() -> list[str]:
     """Возвращает список всех uid для планировщика напоминаний."""
     res = supabase.table("users").select("uid").execute()
     return [r["uid"] for r in (res.data or [])]
-
-def get_user_by_username(username: str) -> dict | None:
-    res = (
-        supabase.table("users")
-        .select("uid, username, first_name")
-        .eq("username", username.lstrip("@"))
-        .maybe_single().execute()
-    )
-    return res.data
 
 
 # ============================================================
