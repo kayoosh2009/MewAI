@@ -1,3 +1,5 @@
-pyTelegramBotAPI
-python-dotenv
-ollama
+aiogram
+supabase 
+ollama 
+python-dotenv 
+requests

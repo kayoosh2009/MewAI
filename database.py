@@ -277,6 +277,15 @@ def get_all_user_ids() -> list[str]:
     res = supabase.table("users").select("uid").execute()
     return [r["uid"] for r in (res.data or [])]
 
+def get_user_by_username(username: str) -> dict | None:
+    res = (
+        supabase.table("users")
+        .select("uid, username, first_name")
+        .eq("username", username.lstrip("@"))
+        .maybe_single().execute()
+    )
+    return res.data
+
 
 # ============================================================
 # DATASET (для обучения ИИ)
