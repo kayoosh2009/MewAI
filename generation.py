@@ -137,14 +137,16 @@ def get_image_base64(bot, token: str, file_id: str) -> str | None:
 # ГЕНЕРАЦИЯ + СТРИМИНГ
 # ============================================================
 
-def generate_and_stream(bot, chat_id: int, msg_id: int, messages: list) -> str | None:
+async def generate_and_stream(bot, chat_id: int, msg_id: int, messages: list) -> str | None:
     """
     Генерирует ответ с эффектом стриминга — редактирует сообщение по ходу.
     Пробует все API ключи по очереди.
     Возвращает полный raw-текст или None при ошибке.
     """
-    STREAM_INTERVAL = 1.2   # секунд между обновлениями
-    MAX_STREAM_LEN  = 3800  # лимит для промежуточных сообщений
+    import asyncio
+
+    STREAM_INTERVAL = 1.2
+    MAX_STREAM_LEN  = 3800
 
     for attempt in range(len(API_KEYS)):
         api_key = _next_key()
@@ -168,17 +170,23 @@ def generate_and_stream(bot, chat_id: int, msg_id: int, messages: list) -> str |
 
                 full_response += chunk
 
-                # Обновляем сообщение по таймеру
                 now = time.time()
                 if now - last_update_at >= STREAM_INTERVAL:
                     display = full_response
                     if len(display) > MAX_STREAM_LEN:
                         display = "…" + display[-MAX_STREAM_LEN:]
                     try:
-                        bot.edit_message_text(display + " █", chat_id, msg_id)
+                        await bot.edit_message_text(
+                            text=display + " █",
+                            chat_id=chat_id,
+                            message_id=msg_id
+                        )
                     except Exception:
                         pass
                     last_update_at = now
+
+                # Даём event loop'у дышать между чанками
+                await asyncio.sleep(0)
 
             if full_response.strip():
                 return full_response
@@ -207,11 +215,16 @@ async def send_ai_response(bot, chat_id: int, msg_id: int, text: str, cost: int)
     if len(converted) <= MAX_LEN:
         try:
             await bot.edit_message_text(
-                converted + cost_suffix, chat_id, msg_id, parse_mode="MarkdownV2"
+                text=converted + cost_suffix,
+                chat_id=chat_id,
+                message_id=msg_id,
+                parse_mode="MarkdownV2"
             )
         except Exception:
             await bot.edit_message_text(
-                text.strip() + f"\n\n💰 -{cost} Purrs", chat_id, msg_id
+                text=text.strip() + f"\n\n💰 -{cost} Purrs",
+                chat_id=chat_id,
+                message_id=msg_id
             )
         return
 
@@ -219,15 +232,31 @@ async def send_ai_response(bot, chat_id: int, msg_id: int, text: str, cost: int)
     parts = split_smart(converted, MAX_LEN)
 
     try:
-        await bot.edit_message_text(parts[0], chat_id, msg_id, parse_mode="MarkdownV2")
+        await bot.edit_message_text(
+            text=parts[0],
+            chat_id=chat_id,
+            message_id=msg_id,
+            parse_mode="MarkdownV2"
+        )
     except Exception:
-        await bot.edit_message_text(text[:MAX_LEN], chat_id, msg_id)
+        await bot.edit_message_text(
+            text=text[:MAX_LEN],
+            chat_id=chat_id,
+            message_id=msg_id
+        )
 
     for idx in range(1, len(parts)):
         chunk = parts[idx]
         if idx == len(parts) - 1:
             chunk += cost_suffix
         try:
-            await bot.send_message(chat_id, chunk, parse_mode="MarkdownV2")
+            await bot.send_message(
+                chat_id=chat_id,
+                text=chunk,
+                parse_mode="MarkdownV2"
+            )
         except Exception:
-            await bot.send_message(chat_id, chunk)
+            await bot.send_message(
+                chat_id=chat_id,
+                text=chunk
+            )

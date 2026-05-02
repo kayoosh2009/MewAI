@@ -226,7 +226,7 @@ async def ai_message_handler(message: Message):
     status_msg  = await message.reply(status_text)
 
     # Генерация со стримингом
-    full_response = generate_and_stream(
+    full_response = await generate_and_stream(
         bot, message.chat.id, status_msg.message_id, messages_to_send
     )
 
