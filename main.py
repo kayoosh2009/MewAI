@@ -242,7 +242,7 @@ async def ai_message_handler(message: Message):
     db.make_transaction(uid, "SYSTEM", cost, "ai_payment")
 
     # Финальная отправка с форматированием
-    send_ai_response(bot, message.chat.id, status_msg.message_id, full_response, cost)
+    await send_ai_response(bot, message.chat.id, status_msg.message_id, full_response, cost)
 
     # Сохраняем ответ бота
     db.save_message(uid, "assistant", full_response)

@@ -194,7 +194,7 @@ def generate_and_stream(bot, chat_id: int, msg_id: int, messages: list) -> str |
 # ФИНАЛЬНАЯ ОТПРАВКА
 # ============================================================
 
-def send_ai_response(bot, chat_id: int, msg_id: int, text: str, cost: int):
+async def send_ai_response(bot, chat_id: int, msg_id: int, text: str, cost: int):
     """
     Заменяет стриминговое сообщение на финальный отформатированный ответ.
     Пробует MarkdownV2 → при ошибке plain text.
@@ -206,11 +206,11 @@ def send_ai_response(bot, chat_id: int, msg_id: int, text: str, cost: int):
 
     if len(converted) <= MAX_LEN:
         try:
-            bot.edit_message_text(
+            await bot.edit_message_text(
                 converted + cost_suffix, chat_id, msg_id, parse_mode="MarkdownV2"
             )
         except Exception:
-            bot.edit_message_text(
+            await bot.edit_message_text(
                 text.strip() + f"\n\n💰 -{cost} Purrs", chat_id, msg_id
             )
         return
@@ -219,15 +219,15 @@ def send_ai_response(bot, chat_id: int, msg_id: int, text: str, cost: int):
     parts = split_smart(converted, MAX_LEN)
 
     try:
-        bot.edit_message_text(parts[0], chat_id, msg_id, parse_mode="MarkdownV2")
+        await bot.edit_message_text(parts[0], chat_id, msg_id, parse_mode="MarkdownV2")
     except Exception:
-        bot.edit_message_text(text[:MAX_LEN], chat_id, msg_id)
+        await bot.edit_message_text(text[:MAX_LEN], chat_id, msg_id)
 
     for idx in range(1, len(parts)):
         chunk = parts[idx]
         if idx == len(parts) - 1:
             chunk += cost_suffix
         try:
-            bot.send_message(chat_id, chunk, parse_mode="MarkdownV2")
+            await bot.send_message(chat_id, chunk, parse_mode="MarkdownV2")
         except Exception:
-            bot.send_message(chat_id, chunk)
+            await bot.send_message(chat_id, chunk)
