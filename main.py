@@ -143,7 +143,7 @@ async def cmd_admin_promo(message: Message):
 # ГЛАВНЫЙ ХЕНДЛЕР СООБЩЕНИЙ
 # ============================================================
 
-@dp.message(F.content_type.in_({"text", "photo"}))
+@dp.message(F.content_type.in_({"text", "photo"}), ~F.text.startswith("/"))
 async def ai_message_handler(message: Message):
     uid       = str(message.from_user.id)
     chat_type = message.chat.type
