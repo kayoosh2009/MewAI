@@ -16,6 +16,8 @@ import database as db
 import commands
 from generation import generate_and_stream, send_ai_response
 
+from aiohttp import web
+
 load_dotenv()
 
 TOKEN    = os.getenv("BOT_TOKEN", "")
@@ -311,13 +313,22 @@ async def inactivity_scheduler():
 # ЗАПУСК
 # ============================================================
 
+async def health(request):
+    return web.Response(text="ok")
+
+async def start_web():
+    app = web.Application()
+    app.router.add_get("/", health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 async def main():
     print("🐾 MewAI starting...")
-
-    # Запускаем планировщик фоном
     asyncio.create_task(inactivity_scheduler())
-
-    # Стартуем polling
+    await start_web()
     await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
 
 
