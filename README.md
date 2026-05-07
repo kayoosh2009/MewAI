@@ -1,4 +1,4 @@
-#MewAI Project - by Kayoosh Studio
+# MewAI Project - by Kayoosh Studio
 Mew AI это телеграм бот который работает на базе моделии Gemma 4 от гугл и позволяет бесплатно и почти без лимитов пользоваться моделью в любом уголке страны.
 Бот доступен через телеграм бота @ne1ronekobot
 

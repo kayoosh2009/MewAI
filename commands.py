@@ -12,27 +12,6 @@ CHANNEL_ID = -1003414162996
 
 # ── Вспомогательные функции ──────────────────────────────────
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="📊 Stats",   callback_data="cmd_stats"),
-            InlineKeyboardButton(text="🔥 Streak",  callback_data="cmd_streak"),
-        ],
-        [
-            InlineKeyboardButton(text="💰 Earn",    callback_data="cmd_earn"),
-            InlineKeyboardButton(text="🧹 Clear",   callback_data="cmd_clear_confirm"),
-        ],
-        [
-            InlineKeyboardButton(text="☕ Donate",  callback_data="cmd_donate"),
-        ],
-    ])
-
-
-def back_to_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="← Back to menu", callback_data="cmd_menu")]
-    ])
-
 def get_active_promo(code: str) -> dict | None:
     """Возвращает промокод если он существует и ещё активен."""
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
