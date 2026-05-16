@@ -1,5 +1,0 @@
-aiogram
-supabase 
-ollama 
-python-dotenv 
-requests
