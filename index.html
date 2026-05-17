@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MewAI - Welcome</title>
+    <style>
+        :root {
+            --bg-color: #211D2D;
+            --text-color: #F2DFD8;
+            --accent-color: #7B61FF;
+            --input-bg: #2D273A;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .auth-container {
+            background-color: var(--input-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #443E5A;
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.3s;
+            margin-top: 1rem;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .toggle-link {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .toggle-link:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-msg {
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <h1>MewAI</h1>
+        <div id="error-box" class="error-msg"></div>
+
+        <!-- Login Form -->
+        <div id="login-form">
+            <div class="form-group">
+                <label>Nickname</label>
+                <input type="text" id="login-nickname" placeholder="Enter your nickname">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="Enter password">
+            </div>
+            <button class="btn" onclick="handleLogin()">Login</button>
+            <div class="toggle-link" onclick="toggleAuth('register')">Don't have an account? Register</div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" class="hidden">
+            <div class="form-group">
+                <label>Nickname</label>
+                <input type="text" id="reg-nickname" placeholder="Choose a nickname">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-password" placeholder="Create password">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="reg-confirm" placeholder="Repeat password">
+            </div>
+            <div class="form-group">
+                <label>Contact (Telegram or Email)</label>
+                <input type="text" id="reg-contact" placeholder="@username or email@example.com">
+            </div>
+            <button class="btn" onclick="handleRegister()">Register</button>
+            <div class="toggle-link" onclick="toggleAuth('login')">Already have an account? Login</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        // Check if user is already logged in on load
+        window.onload = () => {
+            const savedUser = localStorage.getItem('mewai_user');
+            if (savedUser) {
+                window.location.href = 'main.html'; // Redirect to main page
+            }
+        };
+
+        function toggleAuth(mode) {
+            document.getElementById('login-form').classList.toggle('hidden', mode === 'register');
+            document.getElementById('register-form').classList.toggle('hidden', mode === 'login');
+            document.getElementById('error-box').style.display = 'none';
+        }
+
+        async function handleLogin() {
+            const nickname = document.getElementById('login-nickname').value;
+            const password = document.getElementById('login-password').value;
+            const errorBox = document.getElementById('error-box');
+
+            if (!nickname || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('mewai_user', JSON.stringify(data));
+                    window.location.href = 'main.html';
+                } else {
+                    showError(data.detail || 'Invalid login credentials');
+                }
+            } catch (e) {
+                showError('Server error. Make sure the backend is running.');
+            }
+        }
+
+        async function handleRegister() {
+            const nickname = document.getElementById('reg-nickname').value;
+            const password = document.getElementById('reg-password').value;
+            const confirm = document.getElementById('reg-confirm').value;
+            const contact = document.getElementById('reg-contact').value;
+            const errorBox = document.getElementById('error-box');
+
+            if (!nickname || !password || !contact) {
+                showError('Please fill in all fields');
+                return;
+            }
+            if (password !== confirm) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname, password, contact })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Registration successful! You can now login.');
+                    toggleAuth('login');
+                } else {
+                    showError(data.detail || 'Registration failed');
+                }
+            } catch (e) {
+                showError('Server error. Make sure the backend is running.');
+            }
+        }
+
+        function showError(msg) {
+            const errorBox = document.getElementById('error-box');
+            errorBox.textContent = msg;
+            errorBox.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

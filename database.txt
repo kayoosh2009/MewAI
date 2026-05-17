@@ -1,0 +1,68 @@
+-- MewAI Database Schema
+
+-- Table for user profiles
+-- We use a profiles table to extend the default Supabase auth.users
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    nickname TEXT UNIQUE NOT NULL,
+    password_hash TEXT, -- Only if not using Supabase Auth
+    contact_info TEXT,
+    total_tokens_used BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table for chats
+CREATE TABLE chats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    title TEXT DEFAULT 'New Chat',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table for messages
+CREATE TABLE messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content TEXT NOT NULL,
+    tokens INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table for API key usage tracking
+-- The keys themselves are in .env, we track usage here by an ID (e.g., 'token_1')
+CREATE TABLE api_keys_usage (
+    token_id TEXT PRIMARY KEY,
+    tokens_used BIGINT DEFAULT 0,
+    last_reset_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indices for performance
+CREATE INDEX idx_profiles_nickname ON profiles(nickname);
+CREATE INDEX idx_messages_chat_id ON messages(chat_id);
+CREATE INDEX idx_chats_user_id ON chats(user_id);
+CREATE INDEX idx_api_keys_usage_tokens ON api_keys_usage(tokens_used);
+
+-- Row Level Security (RLS)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_keys_usage ENABLE ROW LEVEL SECURITY;
+
+-- Profiles: Users can only see their own profiles
+CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Chats: Users can only see their own chats
+CREATE POLICY "Users can view their own chats" ON chats FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own chats" ON chats FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Messages: Users can only see messages in their chats
+CREATE POLICY "Users can view messages in their chats" ON messages FOR SELECT USING (
+    EXISTS (SELECT 1 FROM chats WHERE chats.id = messages.chat_id AND chats.user_id = auth.uid())
+);
+CREATE POLICY "Users can insert messages in their chats" ON messages FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM chats WHERE chats.id = messages.chat_id AND chats.user_id = auth.uid())
+);
+
+-- API keys usage: Only service role access (no user policies)
