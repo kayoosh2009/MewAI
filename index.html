@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MewAI - Authentication</title>
+    <style>
+        /* Переменные цвета из твоего idea.txt */
+        :root {
+            --bg-color: #211D2D;
+            --text-color: #F2DFD8;
+            --input-bg: #2A253A;
+            --accent-color: #4E4466;
+            --accent-hover: #635682;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Главный контейнер: разделение экрана */
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* ЛЕВАЯ СТОРОНА: Формы авторизации */
+        .auth-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px 60px;
+            max-width: 550px;
+            width: 100%;
+        }
+
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .form-container {
+            width: 100%;
+        }
+
+        .form-title {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-subtitle {
+            font-size: 14px;
+            color: rgba(242, 223, 216, 0.6);
+            margin-bottom: 30px;
+        }
+
+        .form-subtitle span {
+            color: #b5a2bf;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Стили полей ввода */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 16px;
+            background-color: var(--input-bg);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            color: var(--text-color);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-hover);
+            background-color: #2f2942;
+        }
+
+        /* Кнопка отправки */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Переключатель видимости форм */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ПРАВАЯ СТОРОНА: Профессиональный баннер-телефон */
+        .banner-section {
+            flex: 1.2;
+            background: linear-gradient(135deg, #181521 0%, #2e293d 100%);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Прибиваем фото к левой части этой секции */
+            padding-left: 40px;
+            position: relative;
+            border-left: 1px solid rgba(242, 223, 216, 0.05);
+        }
+
+        .banner-img {
+            max-height: 85vh;
+            max-width: 90%;
+            object-fit: contain;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        /* НИЖНЯЯ ПАНЕЛЬ (ФУТЕР) */
+        footer {
+            width: 100%;
+            padding: 24px 60px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: rgba(242, 223, 216, 0.5);
+            background: var(--bg-color);
+            border-top: 1px solid rgba(242, 223, 216, 0.03);
+        }
+
+        .footer-links {
+            margin-left: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: rgba(242, 223, 216, 0.5);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-color);
+        }
+
+        /* АДАПТИВНОСТЬ ПОД ТЕЛЕФОНЫ */
+        @media (max-width: 900px) {
+            .banner-section {
+                display: none; /* Полностью убираем баннер на мобильных */
+            }
+            .auth-section {
+                max-width: 100%;
+                padding: 40px 24px;
+            }
+            footer {
+                padding: 24px;
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+            .footer-links {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <main class="auth-section">
+            
+            <div class="brand-header">
+                <img src="icons/logo.png" alt="MewAI Logo" class="brand-logo">
+                <span class="brand-name">MewAI</span>
+            </div>
+
+            <div id="loginFormContainer" class="form-container">
+                <h1 class="form-title">Sign In</h1>
+                <p class="form-subtitle">New to MewAI? <span onclick="toggleAuth()">Create an account</span></p>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <input type="text" id="loginUsername" placeholder="Username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="submit-btn">Sign In</button>
+                </form>
+            </div>
+
+            <div id="registerFormContainer" class="form-container hidden">
+                <h1 class="form-title">Create Account</h1>
+                <p class="form-subtitle">Already have an account? <span onclick="toggleAuth()">Sign In</span></p>
+                
+                <form id="registerForm">
+                    <div class="form-group">
+                        <input type="text" id="regUsername" placeholder="Username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="regPassword" placeholder="Password" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="regContact" placeholder="Telegram username or Email" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Register</button>
+                </form>
+            </div>
+
+        </main>
+
+        <section class="banner-section">
+            <img src="icons/banner.png" alt="MewAI Application Preview" class="banner-img">
+        </section>
+    </div>
+
+    <footer>
+        <div>MewAI 2026 &nbsp;&nbsp;*</div>
+        <div class="footer-links">
+            <a href="#">LinkedIn</a>
+            <a href="#">Github</a>
+            <a href="#">Telegram</a>
+        </div>
+    </footer>
+
+    <script>
+        // 1. Проверка localStorage при загрузке страницы для автоматического входа
+        window.addEventListener('DOMContentLoaded', () => {
+            const userHash = localStorage.getItem('mewai_user_hash');
+            if (userHash) {
+                // Перенаправляем на главную (к чату)
+                window.location.href = 'html/main.py'; 
+            }
+        });
+
+        // 2. Функция переключения между Входом и Регистрацией
+        function toggleAuth() {
+            document.getElementById('loginFormContainer').classList.toggle('hidden');
+            document.getElementById('registerFormContainer').classList.toggle('hidden');
+        }
+
+        // 3. Обработка формы Входа
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Здесь будет твой fetch-запрос к бэкенду Flask (к database.py через роут)
+            // Имитация успешного входа:
+            const generatedHash = btoa(username + ":" + password); // Для примера генерируем простой хэш
+            localStorage.setItem('mewai_user_hash', generatedHash);
+            
+            window.location.href = 'html/main.html';
+        });
+
+        // 4. Обработка формы Регистрации
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+            if (password !== passwordConfirm) {
+                alert("Passwords do not match!");
+                return;
+            }
+
+            // Твоя логика отправки данных (username, password, contact) во Flask -> Supabase
+            // При успешном ответе:
+            alert("Registration successful! Now please log in.");
+            toggleAuth();
+        });
+    </script>
+</body>
+</html>
