@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MewAI - Chat</title>
+    <style>
+        /* Основная палитра MewAI */
+        :root {
+            --bg-color: #211D2D;
+            --text-color: #F2DFD8;
+            --input-bg: #1A1724;
+            --accent-color: #4E4466;
+            --hover-color: #332C44;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* ЦЕНТРАЛЬНАЯ ЗОНА: Вывод сообщений */
+        .chat-container {
+            flex: 1;
+            width: 100%;
+            max-width: 800px;
+            margin: 60px auto 10px auto; /* Сдвиг сверху под кнопки main.html */
+            overflow-y: auto;
+            padding-right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        /* Приветственный экран, если сообщений еще нет */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            text-align: center;
+            opacity: 0.85;
+        }
+
+        .welcome-time {
+            font-size: 14px;
+            opacity: 0.5;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Стилизация сообщений */
+        .message {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 16px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user {
+            background-color: var(--accent-color);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background-color: var(--input-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(242, 223, 216, 0.03);
+        }
+
+        /* БЛОК ВВОДА ЗАПРОСА В ЦЕНТРЕ НИЗА */
+        .input-area-wrapper {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .input-box {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid rgba(242, 223, 216, 0.08);
+            border-radius: 24px;
+            padding: 14px 130px 14px 60px; /* Отступы под кнопки по краям */
+            color: var(--text-color);
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            max-height: 150px;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: var(--accent-color);
+        }
+
+        /* Кнопка отправки (в самом левом углу строки) */
+        .btn-send {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Кнопка привязки файла (справа строки ввода) */
+        .btn-files {
+            position: absolute;
+            right: 85px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Выбор режима fast/thinking (слева строки ввода, рядом с отправкой) */
+        .mode-toggle-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+            background: var(--hover-color);
+            padding: 4px;
+            border-radius: 14px;
+        }
+
+        .mode-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .mode-btn.active {
+            background-color: var(--accent-color);
+        }
+
+        .icon-img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            transition: transform 0.1s;
+        }
+
+        .icon-img:hover {
+            transform: scale(1.08);
+        }
+
+        /* Скрытый инпут для файлов */
+        #fileInput {
+            display: none;
+        }
+
+        /* ВЫДЕЛЕННОЕ МЕСТО ДЛЯ БАННЕРА В САМОМ НИЗУ */
+        .ad-container-fixed {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 15px;
+            margin-top: 5px;
+            border-top: 1px solid rgba(242, 223, 216, 0.03);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-time" id="userTime">00:00 AM</div>
+            <div class="welcome-title">New Conversation</div>
+        </div>
+    </div>
+
+    <div class="input-area-wrapper">
+        <button class="btn-send" id="sendBtn">
+            <img src="../icons/sent.png" class="icon-img" alt="Send">
+        </button>
+
+        <textarea class="input-box" id="promptInput" rows="1" placeholder="Ask MewAI anything..."></textarea>
+
+        <button class="btn-files" id="fileBtn">
+            <img src="../icons/files.png" class="icon-img" alt="Attach files">
+        </button>
+        <input type="file" id="fileInput">
+
+        <div class="mode-toggle-container">
+            <button class="mode-btn active" id="modeFast" title="Fast Mode">
+                <img src="../icons/fast.png" class="icon-img" alt="Fast">
+            </button>
+            <button class="mode-btn" id="modeThinking" title="Thinking Mode">
+                <img src="../icons/thinking.png" class="icon-img" alt="Thinking">
+            </button>
+        </div>
+    </div>
+
+    <div class="ad-container-fixed">
+        <div id="frame" style="width: 320px;margin: auto;z-index: 99998;height: auto">
+            <iframe data-aa='2438199' src='//ad.a-ads.com/2438199/?size=320x100&background_color=211D2D&title_color=F2DFD8&title_hover_color=F2DFD8&text_color=F2DFD8&link_color=F2DFD8&link_hover_color=F2DFD8'
+                    style='border:0; padding:0; width:320px; height:100px; overflow:hidden;display: block;margin: auto'></iframe>
+        </div>
+        </div>
+
+    <script>
+        const chatContainer = document.getElementById('chatContainer');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const userTime = document.getElementById('userTime');
+        const promptInput = document.getElementById('promptInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const fileBtn = document.getElementById('fileBtn');
+        const fileInput = document.getElementById('fileInput');
+        
+        const modeFast = document.getElementById('modeFast');
+        const modeThinking = document.getElementById('modeThinking');
+
+        let currentMode = 'fast';
+        let activeChatId = null;
+
+        // Показ локального времени пользователя над полем
+        function updateTime() {
+            const now = new Date();
+            userTime.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+        updateTime();
+        setInterval(updateTime, 60000);
+
+        // Переключение режимов генерации (Fast / Thinking)
+        modeFast.addEventListener('click', () => {
+            currentMode = 'fast';
+            modeFast.classList.add('active');
+            modeThinking.classList.remove('active');
+        });
+
+        modeThinking.addEventListener('click', () => {
+            currentMode = 'thinking';
+            modeThinking.classList.add('active');
+            modeFast.classList.remove('active');
+        });
+
+        // Открытие выбора файлов
+        fileBtn.addEventListener('click', () => fileInput.click());
+
+        // Автоматическое увеличение высоты textarea при вводе длинного текста
+        promptInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Добавление сообщения на экран
+        function appendMessage(role, text) {
+            if (welcomeScreen) welcomeScreen.remove();
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            msgDiv.textContent = text;
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return msgDiv;
+        }
+
+        // Асинхронный метод отправки сообщения на FastAPI и обработка стрима
+        async function handleSendMessage() {
+            const content = promptInput.value.trim();
+            if (!content) return;
+
+            const userId = localStorage.getItem('mewai_user_id') || "default_user";
+
+            // Если сессия новая и ID чата нет, сначала создаем чат в Supabase через FastAPI
+            if (!activeChatId) {
+                try {
+                    const chatRes = await fetch('http://localhost:8000/chats', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, title: content.substring(0, 24) })
+                    });
+                    const newChat = await chatRes.json();
+                    activeChatId = newChat.id;
+                } catch (err) {
+                    console.error("Failed to initialize chat:", err);
+                    appendMessage('assistant', "Connection error. Failed to start chat session.");
+                    return;
+                }
+            }
+
+            // Выводим сообщение пользователя на экран
+            appendMessage('user', content);
+            promptInput.value = '';
+            promptInput.style.height = 'auto';
+
+            // Создаем пустой контейнер для ответа ИИ (для эффекта печатающегося текста)
+            const aiMessageElement = appendMessage('assistant', '');
+
+            try {
+                // Отправляем POST запрос к роуту /chat/generate в py/main.py
+                const response = await fetch('http://localhost:8000/chat/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        chat_id: activeChatId,
+                        content: content,
+                        mode: currentMode,
+                        stream: true
+                    })
+                });
+
+                if (!response.ok) throw new Error("Server generation failed");
+
+                // Чтение Text/Event-Stream потока (Streaming Response)
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    // Оставляем последний незавершенный элемент в буфере
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const jsonData = JSON.parse(line.replace('data: ', ''));
+                                if (jsonData.chunk) {
+                                    aiMessageElement.textContent += jsonData.chunk;
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                }
+                            } catch (e) {
+                                // Игнорируем ошибки парсинга пустых кареток
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Streaming error:", error);
+                aiMessageElement.textContent = "Error: Failed to fetch streaming response from Ollama.";
+            }
+        }
+
+        // Обработка клика по кнопке Отправить и Enter
+        sendBtn.addEventListener('click', handleSendMessage);
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+            }
+        });
+
+        // Слушатель событий от родительского окна main.html (клик по старым чатам)
+        window.addEventListener('message', async (event) => {
+            if (event.data.type === 'LOAD_CHAT_HISTORY' && event.data.chatId) {
+                activeChatId = event.data.chatId;
+                chatContainer.innerHTML = ''; // Очищаем контейнер под историю
+                
+                try {
+                    const historyRes = await fetch(`http://localhost:8000/chat/history/${activeChatId}`);
+                    const history = await historyRes.json();
+                    
+                    if (history && history.length > 0) {
+                        history.forEach(msg => {
+                            appendMessage(msg.role, msg.content);
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error loading history:", err);
+                    appendMessage('assistant', "Failed to synchronize conversation history.");
+                }
+            }
+        });
+    </script>
+</body>
+</html>
