@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse # <-- Добавили HTMLResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import json
@@ -33,7 +33,18 @@ class MessageRequest(BaseModel):
     stream: bool = True
 
 # --- Routes ---
-
+@app.get("/", response_class=HTMLResponse)
+def read_root():
+    # Находим файл index.html, который лежит в корне (на уровень выше папки py)
+    # Если твой index.html лежит в той же папке, что и main.py, то просто укажи "index.html"
+    index_path = "../index.html" 
+    
+    try:
+        with open(index_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Файл index.html не найден в корневой директории")
+    
 @app.post("/auth/register")
 def auth_register(user: UserRegister):
     result = register_user(user.nickname, user.password, user.contact)
