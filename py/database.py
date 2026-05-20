@@ -85,6 +85,17 @@ def create_chat(user_id: str, name: str = "New Chat") -> Dict[str, Any]:
     response = supabase.table("chats").insert(data).execute()
     return response.data[0] if response.data else {}
 
+def get_user_chats(user_id: str) -> List[Dict[str, Any]]:
+    """
+    Retrieves all chat sessions for a specific user.
+    """
+    try:
+        response = supabase.table("chats").select("*").eq("user_id", user_id).order("created_at", descending=True).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Error fetching user chats: {e}")
+        return []
+    
 def save_message(chat_id: str, role: str, content: str, tokens: int = 0) -> Dict[str, Any]:
     """
     Saves a message to a chat and tracks token usage.
@@ -130,7 +141,6 @@ def get_available_api_key() -> Optional[str]:
     2. Checks for keys that need a reset (older than 7 days).
     3. Selects the key with the lowest usage under the 1M limit.
     """
-    import datetime
 
     # Load tokens from .env
     tokens = {}
@@ -158,7 +168,7 @@ def get_available_api_key() -> Optional[str]:
 
     # 2. Get usage stats for all tokens in our .env list
     token_ids = list(tokens.keys())
-    response = supabase.table("api_keys_usage").select("token_id, tokens_used").in("token_id", token_ids).execute()
+    response = supabase.table("api_keys_usage").select("token_id, tokens_used").in_("token_id", token_ids).execute()
 
     usage_map = {row['token_id']: row['tokens_used'] for row in response.data}
 
