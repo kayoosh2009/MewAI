@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles # <-- Добавили этот импорт
+from fastapi.staticfiles import StaticFiles 
+from fastapi.middleware.cors import CORSMiddleware  # <-- ДОБАВИТЬ ЭТУ СТРОКУ
 from pydantic import BaseModel
 from typing import List, Optional
 import json
@@ -11,6 +12,14 @@ from .database import (
 from .generation import generate_response, generate_stream_response
 
 app = FastAPI(title="MewAI Backend")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ----------------------------------------
 
 # --- Монтирование статических папок ---
 import os

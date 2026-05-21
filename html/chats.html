@@ -336,7 +336,7 @@
             // Автоматическое создание чата в Supabase при первой реплике
             if (!activeChatId) {
                 try {
-                    const chatRes = await fetch('http://localhost:8000/chats', {
+                    const chatRes = await fetch('http://localhost:7860/chats', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: userId, title: content.substring(0, 24) })
@@ -360,7 +360,7 @@
 
             try {
                 // Запрос к роуту /chat/generate из твоего py/main.py
-                const response = await fetch('http://localhost:8000/chat/generate', {
+                const response = await fetch('http://localhost:7860/chat/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -422,7 +422,7 @@
                 chatContainer.innerHTML = ''; // Сброс текущих сообщений
                 
                 try {
-                    const historyRes = await fetch(`http://localhost:8000/chat/history/${activeChatId}`);
+                    const historyRes = await fetch(`http://localhost:7860/chat/history/${activeChatId}`);
                     const history = await historyRes.json();
                     
                     if (history && history.length > 0) {

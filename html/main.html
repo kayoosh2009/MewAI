@@ -249,7 +249,7 @@
             const userId = localStorage.getItem('mewai_user_id') || "default_user"; 
 
             try {
-                const response = await fetch(`http://localhost:8000/chats/${userId}`);
+                const response = await fetch(`http://localhost:7860/chats/${userId}`);
                 if (!response.ok) throw new Error("Database offline");
                 
                 const chats = await response.json();
