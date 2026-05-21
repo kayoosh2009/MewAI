@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse, HTMLResponse # <-- Добавили HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles # <-- Добавили этот импорт
 from pydantic import BaseModel
 from typing import List, Optional
 import json
@@ -11,6 +12,20 @@ from .generation import generate_response, generate_stream_response
 
 app = FastAPI(title="MewAI Backend")
 
+# --- Монтирование статических папок ---
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 1. Привязываем папку icons (поднимаемся из py/ на уровень выше и заходим в icons/)
+icons_path = os.path.join(current_dir, "..", "icons")
+if os.path.exists(icons_path):
+    app.mount("/icons", StaticFiles(directory=icons_path), name="icons")
+
+# 2. Привязываем папку html (поднимаемся из py/ на уровень выше и заходим в html/)
+html_path = os.path.join(current_dir, "..", "html")
+if os.path.exists(html_path):
+    app.mount("/html", StaticFiles(directory=html_path), name="html")
+    
 # --- Models ---
 class UserRegister(BaseModel):
     nickname: str
@@ -35,15 +50,22 @@ class MessageRequest(BaseModel):
 # --- Routes ---
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    # Находим файл index.html, который лежит в корне (на уровень выше папки py)
-    # Если твой index.html лежит в той же папке, что и main.py, то просто укажи "index.html"
-    index_path = "../index.html" 
+    import os
+    
+    # 1. Находим папку, в которой лежит сам main.py (это папка py/)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 2. Поднимаемся на один уровень выше (в корень проекта) и находим index.html
+    index_path = os.path.join(current_dir, "..", "index.html")
     
     try:
         with open(index_path, "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Файл index.html не найден в корневой директории")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Файл index.html не найден по пути: {os.path.abspath(index_path)}"
+        )
     
 @app.post("/auth/register")
 def auth_register(user: UserRegister):
