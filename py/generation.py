@@ -1,7 +1,7 @@
 import os
 from typing import List, Dict, Any, Optional
 from ollama import Client
-from .database import get_available_api_key, update_token_usage, update_user_tokens
+from database import get_available_api_key, update_token_usage, update_user_tokens
 
 # Configuration
 DEFAULT_MODEL = 'gemma4:31b-cloud'

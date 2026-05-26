@@ -2,7 +2,7 @@ import os
 import datetime
 from typing import List, Dict, Any, Optional
 from supabase import create_client, Client
-from postgrest import APIError
+from postgrest.exceptions import APIError
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -44,8 +44,8 @@ def register_user(nickname: str, password: str, contact: str) -> Dict[str, Any]:
 
     try:
         supabase.table("profiles").insert(profile_data).execute()
-    except APIError as e:
-        raise Exception(f"Registration failed: {e.message}")
+    except Exception as e:
+        raise Exception(f"Registration failed: {str(e)}")
 
     return {"id": user_id, "nickname": nickname, "status": "success"}
 
