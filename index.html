@@ -290,30 +290,53 @@
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
 
-            // Здесь будет твой fetch-запрос к бэкенду Flask (к database.py через роут)
-            // Имитация успешного входа:
-            const generatedHash = btoa(username + ":" + password); // Для примера генерируем простой хэш
-            localStorage.setItem('mewai_user_hash', generatedHash);
-            
-            window.location.href = 'html/main.html';
+            try {
+                const response = await fetch('http://localhost:7860/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname: username, password: password })
+                });
+
+                if (!response.ok) throw new Error('Login failed');
+                
+                const data = await response.json();
+                localStorage.setItem('mewai_user_id', data.user.id);
+                localStorage.setItem('mewai_user_hash', btoa(username + ":" + password));
+                
+                window.location.href = 'html/main.html';
+            } catch (error) {
+                alert('Login error: ' + error.message);
+            }
         });
 
         // 4. Обработка формы Регистрации
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const username = document.getElementById('regUsername').value;
             const password = document.getElementById('regPassword').value;
             const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const contact = document.getElementById('regContact').value;
 
             if (password !== passwordConfirm) {
                 alert("Passwords do not match!");
                 return;
             }
 
-            // Твоя логика отправки данных (username, password, contact) во Flask -> Supabase
-            // При успешном ответе:
-            alert("Registration successful! Now please log in.");
-            toggleAuth();
+            try {
+                const response = await fetch('http://localhost:7860/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname: username, password: password, contact: contact })
+                });
+
+                if (!response.ok) throw new Error('Registration failed');
+                
+                alert("Registration successful! Now please log in.");
+                toggleAuth();
+            } catch (error) {
+                alert('Registration error: ' + error.message);
+            }
         });
     </script>
 </body>

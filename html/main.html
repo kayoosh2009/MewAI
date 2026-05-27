@@ -220,6 +220,7 @@
             <a href="profile.html" class="nav-link">Profile</a>
             <a href="stats.html" class="nav-link">Statistics</a>
             <a href="donate.html" class="nav-link">Support</a>
+            <button id="logoutBtn" class="nav-link" style="cursor: pointer; border: none; background: var(--accent-color);">Logout</button>
         </nav>
     </div>
 
@@ -288,6 +289,12 @@
         }
 
         window.addEventListener('DOMContentLoaded', loadUserChats);
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('mewai_user_id');
+            localStorage.removeItem('mewai_user_hash');
+            window.location.href = '/';
+        });
     </script>
 </body>
 </html>
