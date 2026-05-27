@@ -5,11 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware  # <-- ДОБАВИТЬ ЭТ�
 from pydantic import BaseModel
 from typing import List, Optional
 import json
-from database import (
+from py.database import (
     register_user, authenticate_user, create_chat,
     save_message, get_chat_history, get_user_chats
 )
-from generation import generate_response, generate_stream_response
+from py.generation import generate_response, generate_stream_response
 
 app = FastAPI(title="MewAI Backend")
 app.add_middleware(
@@ -142,7 +142,7 @@ def chat_generate(req: MessageRequest):
 
 @app.get("/profile/{user_id}")
 def get_profile(user_id: str):
-    from database import supabase
+    from py.database import supabase
     try:
         res = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
         if not res.data:
@@ -153,7 +153,7 @@ def get_profile(user_id: str):
 
 @app.get("/stats/{user_id}")
 def get_stats(user_id: str):
-    from database import supabase
+    from py.database import supabase
     try:
         res = supabase.table("profiles").select("total_tokens_used").eq("id", user_id).single().execute()
         if not res.data:

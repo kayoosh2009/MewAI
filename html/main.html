@@ -246,7 +246,11 @@
 
         // Загрузка данных из FastAPI бэкенда
         async function loadUserChats() {
-            const userId = localStorage.getItem('mewai_user_id') || "default_user"; 
+            const userId = localStorage.getItem('mewai_user_id');
+            if (!userId) {
+                chatsListWrapper.innerHTML = '<div class="no-chats" style="color: #ff8888;">Please log in first</div>';
+                return;
+            }
 
             try {
                 const response = await fetch(`http://localhost:7860/chats/${userId}`);

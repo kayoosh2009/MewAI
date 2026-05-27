@@ -331,7 +331,12 @@
             const content = promptInput.value.trim();
             if (!content) return;
 
-            const userId = localStorage.getItem('mewai_user_id') || "default_user";
+            const userId = localStorage.getItem('mewai_user_id');
+            if (!userId) {
+                alert('Please log in first');
+                // Перенаправить на страницу входа или показать ошибку
+                return;
+            }
 
             // Автоматическое создание чата в Supabase при первой реплике
             if (!activeChatId) {
