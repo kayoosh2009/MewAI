@@ -310,6 +310,7 @@
         });
 
         // 4. Обработка формы Регистрации
+        // 4. Обработка формы Регистрации
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -332,8 +333,11 @@
 
                 if (!response.ok) throw new Error('Registration failed');
                 
-                alert("Registration successful! Now please log in.");
-                toggleAuth();
+                const data = await response.json();
+                localStorage.setItem('mewai_user_id', data.user.id);
+                localStorage.setItem('mewai_user_hash', btoa(username + ":" + password));
+                
+                window.location.href = 'html/main.html';
             } catch (error) {
                 alert('Registration error: ' + error.message);
             }

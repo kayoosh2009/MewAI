@@ -19,35 +19,47 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def register_user(nickname: str, password: str, contact: str) -> Dict[str, Any]:
     """
     Registers a new user.
-    Since Supabase Auth requires an email, we create a pseudo-email based on nickname.
     """
-    email = f"{nickname}@mewai.internal"
-
-    # 1. Create user in Supabase Auth
-    auth_response = supabase.auth.sign_up({
-        "email": email,
-        "password": password,
-    })
-
-    if not auth_response.user:
-        raise Exception("Failed to create user in Supabase Auth")
-
-    user_id = auth_response.user.id
-
-    # 2. Create profile in the profiles table
-    profile_data = {
-        "id": user_id,
-        "nickname": nickname,
-        "contact_info": contact,
-        "total_tokens_used": 0
-    }
+    email = contact if '@' in contact else f"{nickname}@example.com"
 
     try:
-        supabase.table("profiles").insert(profile_data).execute()
-    except Exception as e:
-        raise Exception(f"Registration failed: {str(e)}")
+        auth_response = supabase.auth.sign_up({
+            "email": email,
+            "password": password,
+        })
 
-    return {"id": user_id, "nickname": nickname, "status": "success"}
+        if not auth_response.user:
+            raise Exception("Failed to create user in Supabase Auth")
+
+        user_id = auth_response.user.id
+
+        profile_data = {
+            "id": user_id,
+            "nickname": nickname,
+            "contact_info": contact,
+            "total_tokens_used": 0
+        }
+
+        supabase.table("profiles").insert(profile_data).execute()
+        
+        # Сразу логиним пользователя после регистрации
+        auth_response = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password,
+        })
+        
+        if auth_response.session:
+            profile = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+            return {
+                "user": profile.data,
+                "session": auth_response.session
+            }
+        
+        return {"id": user_id, "nickname": nickname, "status": "success"}
+    
+    except Exception as e:
+        print(f"Registration error: {e}")
+        raise Exception(f"Registration failed: {str(e)}")
 
 def authenticate_user(nickname: str, password: str) -> Optional[Dict[str, Any]]:
     """
