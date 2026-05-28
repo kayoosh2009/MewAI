@@ -4,6 +4,8 @@ from typing import List, Dict, Any, Optional
 from supabase import create_client, Client
 from postgrest.exceptions import APIError
 from dotenv import load_dotenv
+import bcrypt
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -18,72 +20,46 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def register_user(nickname: str, password: str, contact: str) -> Dict[str, Any]:
     """
-    Registers a new user.
+    Registers a new user without Supabase Auth — stores directly in profiles table.
     """
-    email = contact if '@' in contact else f"{nickname}@example.com"
-
     try:
-        auth_response = supabase.auth.sign_up({
-            "email": email,
-            "password": password,
-        })
+        # Проверяем что никнейм не занят
+        existing = supabase.table("profiles").select("id").eq("nickname", nickname).execute()
+        if existing.data:
+            raise Exception("Nickname already taken")
 
-        if not auth_response.user:
-            raise Exception("Failed to create user in Supabase Auth")
-
-        user_id = auth_response.user.id
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        user_id = str(uuid.uuid4())
 
         profile_data = {
             "id": user_id,
             "nickname": nickname,
             "contact_info": contact,
+            "password_hash": hashed,
             "total_tokens_used": 0
         }
 
         supabase.table("profiles").insert(profile_data).execute()
-        
-        # Сразу логиним пользователя после регистрации
-        auth_response = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password,
-        })
-        
-        if auth_response.session:
-            profile = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-            return {
-                "user": profile.data,
-                "session": auth_response.session
-            }
-        
-        return {"id": user_id, "nickname": nickname, "status": "success"}
-    
+
+        profile = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+        return {"user": profile.data}
+
     except Exception as e:
         print(f"Registration error: {e}")
         raise Exception(f"Registration failed: {str(e)}")
 
 def authenticate_user(nickname: str, password: str) -> Optional[Dict[str, Any]]:
-    """
-    Authenticates a user using their nickname and password.
-    """
-    email = f"{nickname}@mewai.internal"
 
     try:
-        auth_response = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password,
-        })
-
-        if auth_response.session:
-            # Retrieve profile info
-            profile = supabase.table("profiles").select("*").eq("id", auth_response.user.id).single().execute()
-            return {
-                "user": profile.data,
-                "session": auth_response.session
-            }
+        profile = supabase.table("profiles").select("*").eq("nickname", nickname).single().execute()
+        if not profile.data:
+            return None
+        hashed = profile.data.get("password_hash", "")
+        if not bcrypt.checkpw(password.encode(), hashed.encode()):
+            return None
+        return {"user": profile.data}
     except Exception as e:
         print(f"Auth error: {e}")
-        return None
-
     return None
 
 def create_chat(user_id: str, name: str = "New Chat") -> Dict[str, Any]:
