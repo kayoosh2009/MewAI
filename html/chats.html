@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MewAI - Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         /* Цветовая палитра MewAI из idea.txt */
         :root {
@@ -46,11 +47,10 @@
         }
 
         .chat-container::-webkit-scrollbar {
-            width: 4px;
+            width: 0;
         }
         .chat-container::-webkit-scrollbar-thumb {
-            background: var(--accent-color);
-            border-radius: 4px;
+            background: transparent;
         }
 
         /* Приветственный экран (показывается, когда чат пустой) */
@@ -99,6 +99,52 @@
             align-self: flex-start;
             border-bottom-left-radius: 4px;
             border: 1px solid rgba(242, 223, 216, 0.03);
+        }
+
+        .message {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: auto;
+        }
+
+        .message code {
+            background: var(--hover-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .code-block {
+            background: var(--hover-color);
+            border: 1px solid rgba(242, 223, 216, 0.08);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--accent-color);
+            border: none;
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #5D537A;
         }
 
         /* ПРОФЕССИОНАЛЬНАЯ СТРОКА ВВОДА ЗАПРОСА */
@@ -320,10 +366,32 @@
 
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${role}`;
-            msgDiv.textContent = text;
+            
+            if (role === 'assistant') {
+                // Markdown парсинг для ассистента
+                let html = marked.parse(text);
+                // Оборачиваем блоки кода в специальный контейнер
+                html = html.replace(/<pre><code(.*?)>([\s\S]*?)<\/code><\/pre>/g, (match, attrs, code) => {
+                    return `<div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code${attrs}>${code}</code></pre></div>`;
+                });
+                msgDiv.innerHTML = html;
+            } else {
+                msgDiv.textContent = text;
+            }
+            
             chatContainer.appendChild(msgDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return msgDiv;
+        }
+
+        function copyCode(btn) {
+            const codeBlock = btn.closest('.code-block').querySelector('code');
+            const text = codeBlock.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const oldText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = oldText, 2000);
+            });
         }
 
         // Логика взаимодействия с FastAPI бэкендом (генерация со стримингом)
@@ -396,7 +464,7 @@
                             try {
                                 const jsonData = JSON.parse(line.replace('data: ', ''));
                                 if (jsonData.chunk) {
-                                    aiMessageElement.textContent += jsonData.chunk;
+                                    aiMessageElement.innerHTML += marked.parse(jsonData.chunk);
                                     chatContainer.scrollTop = chatContainer.scrollHeight;
                                 }
                             } catch (e) {

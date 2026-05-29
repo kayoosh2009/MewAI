@@ -6,6 +6,14 @@ from py.database import get_available_api_key, update_token_usage, update_user_t
 # Configuration
 DEFAULT_MODEL = 'gemma4:31b-cloud'
 
+def get_valid_api_key() -> Optional[str]:
+    """Skip empty or invalid tokens."""
+    for i in range(1, 26):
+        token = os.environ.get(f"TOKEN_{i}")
+        if token and len(token.strip()) > 10:
+            return token
+    return None
+
 def generate_response(user_id: str, messages: List[Dict[str, str]], mode: str = 'fast') -> Dict[str, Any]:
     """
     Generates an AI response based on user messages and a selected mode.
@@ -106,27 +114,45 @@ def generate_stream_response(user_id: str, messages: List[Dict[str, str]], mode:
 
     full_messages = [{"role": "system", "content": system_prompt}] + messages
 
-    try:
-        client = Client(
-            host="https://ollama.com",
-            headers={'Authorization': f'Bearer {api_token}'}
-        )
+    max_retries = 3
+    retry_count = 0
 
-        total_content = ""
-        for part in client.chat(model=DEFAULT_MODEL, messages=full_messages, stream=True):
-            chunk = part['message']['content']
-            total_content += chunk
-            yield chunk
+    while retry_count < max_retries:
+        try:
+            client = Client(
+                host="https://ollama.com",
+                headers={'Authorization': f'Bearer {api_token}'}
+            )
 
-        # Update usage after stream finishes
-        tokens_used = len(total_content) // 4
-        prompt_tokens = sum(len(m['content']) // 4 for m in full_messages)
-        total_tokens = tokens_used + prompt_tokens
+            total_content = ""
+            for part in client.chat(model=DEFAULT_MODEL, messages=full_messages, stream=True):
+                chunk = part['message']['content']
+                total_content += chunk
+                yield chunk
 
-        if token_id:
-            update_token_usage(token_id, total_tokens)
-        update_user_tokens(user_id, total_tokens)
+            tokens_used = len(total_content) // 4
+            prompt_tokens = sum(len(m['content']) // 4 for m in full_messages)
+            total_tokens = tokens_used + prompt_tokens
 
-    except Exception as e:
-        print(f"Streaming error: {e}")
-        yield f"Error: {str(e)}"
+            if token_id:
+                update_token_usage(token_id, total_tokens)
+            update_user_tokens(user_id, total_tokens)
+            return
+
+        except Exception as e:
+            error_str = str(e)
+            if "401" in error_str or "Unauthorized" in error_str:
+                print(f"Token {token_id} invalid. Trying next...")
+                retry_count += 1
+                api_token = get_valid_api_key()
+                if not api_token:
+                    yield "Error: No valid tokens."
+                    return
+                for i in range(1, 26):
+                    if os.environ.get(f"TOKEN_{i}") == api_token:
+                        token_id = f"token_{i}"
+                        break
+            else:
+                print(f"Streaming error: {e}")
+                yield f"Error: {str(e)}"
+                return

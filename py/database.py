@@ -108,19 +108,37 @@ def update_user_tokens(user_id: str, tokens_added: int):
     """
     Increments the total tokens used by a user.
     """
-    profile = supabase.table("profiles").select("total_tokens_used").eq("id", user_id).single().execute()
-    current_tokens = profile.data.get("total_tokens_used", 0) if profile.data else 0
-
-    supabase.table("profiles").update({"total_tokens_used": current_tokens + tokens_added}).eq("id", user_id).execute()
+    try:
+        profile = supabase.table("profiles").select("total_tokens_used").eq("id", user_id).execute()
+        
+        if not profile.data:
+            return  # Пользователь не найден
+        
+        current_tokens = profile.data[0].get("total_tokens_used", 0)
+        supabase.table("profiles").update({"total_tokens_used": current_tokens + tokens_added}).eq("id", user_id).execute()
+    except Exception as e:
+        print(f"Error updating user tokens: {e}")
 
 def update_token_usage(token_id: str, tokens_added: int):
     """
     Increments the token usage for a specific API key.
     """
-    key_data = supabase.table("api_keys_usage").select("tokens_used").eq("token_id", token_id).single().execute()
-    current_usage = key_data.data.get("tokens_used", 0) if key_data.data else 0
-
-    supabase.table("api_keys_usage").update({"tokens_used": current_usage + tokens_added}).eq("token_id", token_id).execute()
+    try:
+        key_data = supabase.table("api_keys_usage").select("tokens_used").eq("token_id", token_id).execute()
+        
+        if not key_data.data:
+            # Если записи нет - создаем новую
+            supabase.table("api_keys_usage").insert({
+                "token_id": token_id,
+                "tokens_used": tokens_added,
+                "last_reset_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }).execute()
+            return
+        
+        current_usage = key_data.data[0].get("tokens_used", 0)
+        supabase.table("api_keys_usage").update({"tokens_used": current_usage + tokens_added}).eq("token_id", token_id).execute()
+    except Exception as e:
+        print(f"Error updating token usage: {e}")
 
 def get_available_api_key() -> Optional[str]:
     """
