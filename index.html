@@ -246,7 +246,7 @@
                         <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" required autocomplete="new-password">
                     </div>
                     <div class="form-group">
-                        <input type="text" id="regContact" placeholder="Telegram username or Email" required>
+                        <input type="text" id="regContact" placeholder="Telegram username (e.g. @username)" required>
                     </div>
                     <button type="submit" class="submit-btn">Register</button>
                 </form>
@@ -269,6 +269,25 @@
     </footer>
 
     <script>
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.src = 'icons/eye.png';
+                icon.style.opacity = '0.9';
+            } else {
+                input.type = 'password';
+                icon.src = 'icons/lock.png';
+                icon.style.opacity = '0.5';
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('errorText').textContent = msg;
+            document.getElementById('errorModal').style.display = 'flex';
+        }
+
         // 1. Проверка localStorage при загрузке страницы для автоматического входа
         window.addEventListener('DOMContentLoaded', () => {
             const userHash = localStorage.getItem('mewai_user_hash');
@@ -306,7 +325,7 @@
                 
                 window.location.href = 'html/main.html';
             } catch (error) {
-                alert('Login error: ' + error.message);
+                showError('Login error: ' + error.message);
             }
         });
 
@@ -321,7 +340,7 @@
             const contact = document.getElementById('regContact').value;
 
             if (password !== passwordConfirm) {
-                alert("Passwords do not match!");
+                showError("Passwords do not match!");
                 return;
             }
 
@@ -340,9 +359,17 @@
                 
                 window.location.href = 'html/main.html';
             } catch (error) {
-                alert('Registration error: ' + error.message);
+                showError('Registration error: ' + error.message);
             }
         });
     </script>
+
+<div id="errorModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:999; align-items:center; justify-content:center;">
+    <div style="background:#2A253A; border-radius:16px; padding:32px; max-width:360px; width:90%; text-align:center;">
+        <p id="errorText" style="font-size:16px; margin-bottom:24px; color:#F2DFD8;"></p>
+        <button onclick="document.getElementById('errorModal').style.display='none'" style="padding:12px 32px; background:#4E4466; color:#F2DFD8; border:none; border-radius:10px; font-size:15px; cursor:pointer;">OK</button>
+    </div>
+</div>
+
 </body>
 </html>
