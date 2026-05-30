@@ -1,0 +1,192 @@
+/* Цветовая палитра MewAI */
+:root {
+    --bg-color: #211D2D;
+    --text-color: #F2DFD8;
+    --sidebar-bg: #1A1724;
+    --accent-color: #4E4466;
+    --hover-color: #332C44;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* НАВИГАЦИОННАЯ ПАНЕЛЬ СВЕРХУ */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(33, 29, 45, 0.9), rgba(33, 29, 45, 0));
+    pointer-events: none;
+    /* Пропускает клики на iframe чата */
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s;
+    pointer-events: auto;
+    /* Возвращает кликабельность кнопкам */
+}
+
+.icon-btn:hover {
+    transform: scale(1.1);
+    opacity: 0.9;
+}
+
+.icon-btn img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+/* ПОЛНОЭКРАННЫЙ ЧАТ */
+.main-content-frame {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    background-color: var(--bg-color);
+}
+
+/* ЭФФЕКТ ЗАТЕМНЕНИЯ (OVERLAY) */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px);
+    /* Матовое размытие */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 99;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ВЫЕЗЖАЮЩЕЕ СЛЕВА МЕНЮ */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -340px;
+    width: 340px;
+    height: 100%;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid rgba(242, 223, 216, 0.03);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: 35px 25px;
+}
+
+.sidebar.active {
+    left: 0;
+}
+
+.sidebar-header {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(242, 223, 216, 0.08);
+    letter-spacing: 0.5px;
+}
+
+/* Список сохраненных чатов */
+.chats-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 25px;
+    padding-right: 5px;
+}
+
+.chats-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.chats-container::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 4px;
+}
+
+.chat-link {
+    display: block;
+    padding: 14px 16px;
+    background: transparent;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.2s ease, transform 0.1s;
+}
+
+.chat-link:hover {
+    background: var(--hover-color);
+    transform: translateX(4px);
+}
+
+.no-chats {
+    opacity: 0.4;
+    font-size: 14px;
+    padding: 15px 5px;
+    font-style: italic;
+}
+
+/* Кнопки навигации внизу меню */
+.sidebar-footer-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid rgba(242, 223, 216, 0.08);
+    padding-top: 25px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: var(--accent-color);
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    transition: background 0.2s ease, transform 0.1s;
+}
+
+.nav-link:hover {
+    background: #5D537A;
+    transform: translateY(-1px);
+}

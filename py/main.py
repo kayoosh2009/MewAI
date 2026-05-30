@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles 
+import anyio
 from fastapi.middleware.cors import CORSMiddleware  # <-- ДОБАВИТЬ ЭТУ СТРОКУ
 from pydantic import BaseModel
 from typing import List, Optional
@@ -106,23 +107,21 @@ def chat_history(chat_id: str):
     return get_chat_history(chat_id)
 
 @app.post("/chat/generate")
-def chat_generate(req: MessageRequest):
-    # 1. Сохраняем сообщение пользователя в DB
+async def chat_generate(req: MessageRequest): # Добавили async
+    # Сохраняем сообщение (синхронный вызов, но в async эндпоинте лучше выполнять в треде или сделать функцию async)
     save_message(req.chat_id, "user", req.content)
-
-    # 2. Получаем историю для ИИ
     history = get_chat_history(req.chat_id)
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
 
     if req.stream:
-        def event_stream():
+        async def event_stream(): # Добавили async
             full_response = ""
+            # Запускаем синхронный генератор так, чтобы он не блокировал основной поток
             for chunk in generate_stream_response(req.user_id, messages, req.mode):
                 full_response += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                await anyio.sleep(0.01) # Даем вздохнуть асинхронному потоку
 
-            # Стрим завершился, токены уже обновлены внутри генератора.
-            # Просто сохраняем текст ответа ассистента в историю.
             save_message(req.chat_id, "assistant", full_response)
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")

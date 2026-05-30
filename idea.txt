@@ -59,3 +59,5 @@ for part in client.chat('gemma4:31b-cloud', messages=messages, stream=True):
 
 
   pip install -r requirements.txt
+
+  uvicorn py.main:app --reload --port 7860
