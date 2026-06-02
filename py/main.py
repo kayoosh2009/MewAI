@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles 
 import anyio
+import os
 from fastapi.middleware.cors import CORSMiddleware  # <-- ДОБАВИТЬ ЭТУ СТРОКУ
 from pydantic import BaseModel
 from typing import List, Optional
@@ -13,6 +14,8 @@ from py.database import (
 from py.generation import generate_response, generate_stream_response
 
 app = FastAPI(title="MewAI Backend")
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,19 +25,25 @@ app.add_middleware(
 )
 # ----------------------------------------
 
-# --- Монтирование статических папок ---
-import os
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# 1. Привязываем папку icons (поднимаемся из py/ на уровень выше и заходим в icons/)
+# 1. Привязываем папку icons
 icons_path = os.path.join(current_dir, "..", "icons")
 if os.path.exists(icons_path):
     app.mount("/icons", StaticFiles(directory=icons_path), name="icons")
 
-# 2. Привязываем папку html (поднимаемся из py/ на уровень выше и заходим в html/)
+# 2. Привязываем папку html
 html_path = os.path.join(current_dir, "..", "html")
 if os.path.exists(html_path):
     app.mount("/html", StaticFiles(directory=html_path), name="html")
+
+# 3. Привязываем папку css
+css_path = os.path.join(current_dir, "..", "css")
+if os.path.exists(css_path):
+    app.mount("/css", StaticFiles(directory=css_path), name="css")
+
+# 4. Привязываем папку js
+js_path = os.path.join(current_dir, "..", "js")
+if os.path.exists(js_path):
+    app.mount("/js", StaticFiles(directory=js_path), name="js")
     
 # --- Models ---
 class UserRegister(BaseModel):
@@ -60,7 +69,6 @@ class MessageRequest(BaseModel):
 # --- Routes ---
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    import os
     
     # 1. Находим папку, в которой лежит сам main.py (это папка py/)
     current_dir = os.path.dirname(os.path.abspath(__file__))
