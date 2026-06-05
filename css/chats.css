@@ -1,18 +1,22 @@
-/* Цветовая палитра MewAI из idea.txt */
 :root {
-    --bg-color: #211D2D;
-    --text-color: #F2DFD8;
-    --input-bg: #1A1724;
+    --bg-color:     #211D2D;
+    --text-color:   #F2DFD8;
+    --input-bg:     #1A1724;
     --accent-color: #4E4466;
-    --hover-color: #332C44;
+    --hover-color:  #332C44;
+    --bubble-user:  #4E4466;
+    --border:       rgba(242, 223, 216, 0.07);
 }
 
-* {
+*, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Roboto, sans-serif;
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE/Edge */
 }
+*::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
 body {
     background-color: var(--bg-color);
@@ -20,34 +24,22 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     overflow: hidden;
-    padding: 20px;
+    padding: 0;
 }
 
-/* ЦЕНТРАЛЬНАЯ ЗОНА: Вывод истории сообщений */
 .chat-container {
     flex: 1;
     width: 100%;
-    max-width: 800px;
-    margin: 60px auto 10px auto;
-    /* Отступ под шапку main.html */
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 20px 12px;
     overflow-y: auto;
-    padding-right: 10px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
 }
 
-.chat-container::-webkit-scrollbar {
-    width: 0;
-}
-
-.chat-container::-webkit-scrollbar-thumb {
-    background: transparent;
-}
-
-/* Приветственный экран (показывается, когда чат пустой) */
 .welcome-screen {
     display: flex;
     flex-direction: column;
@@ -55,50 +47,79 @@ body {
     justify-content: center;
     flex: 1;
     text-align: center;
-    opacity: 0.85;
+    gap: 10px;
+    animation: fadeIn 0.5s ease;
 }
 
 .welcome-time {
-    font-size: 14px;
-    opacity: 0.5;
-    margin-bottom: 5px;
-    letter-spacing: 1px;
+    font-size: 13px;
+    opacity: 0.4;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .welcome-title {
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
+    opacity: 0.85;
 }
 
-/* Стилизация пузырей сообщений */
+.ad-container-fixed {
+    margin-top: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease, max-height 0.45s ease;
+    max-height: 120px;
+    overflow: hidden;
+}
+
+.ad-container-fixed.hidden {
+    opacity: 0;
+    transform: translateY(10px);
+    max-height: 0;
+    pointer-events: none;
+}
+
 .message {
-    max-width: 85%;
-    padding: 14px 18px;
-    border-radius: 16px;
-    font-size: 16px;
-    line-height: 1.5;
+    max-width: 80%;
+    font-size: 15px;
+    line-height: 1.65;
     word-wrap: break-word;
     animation: fadeIn 0.3s ease;
 }
 
+/* User — pill bubble */
 .message.user {
-    background-color: var(--accent-color);
     align-self: flex-end;
-    border-bottom-right-radius: 4px;
-}
-
-.message.assistant {
-    background-color: var(--input-bg);
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
-    border: 1px solid rgba(242, 223, 216, 0.03);
-}
-
-.message {
+    background-color: var(--bubble-user);
+    padding: 12px 18px;
+    border-radius: 20px 20px 5px 20px;
     white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-x: auto;
+}
+
+/* Assistant — plain text, no bubble */
+.message.assistant {
+    align-self: flex-start;
+    color: var(--text-color);
+    padding: 4px 0;
+}
+
+.message.assistant p { margin-bottom: 10px; }
+.message.assistant p:last-child { margin-bottom: 0; }
+.message.assistant ul,
+.message.assistant ol {
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+.message.assistant li { margin-bottom: 4px; }
+.message.assistant h1,
+.message.assistant h2,
+.message.assistant h3 {
+    margin: 14px 0 6px;
+    font-weight: 600;
 }
 
 .message code {
@@ -106,22 +127,20 @@ body {
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
+    font-size: 13px;
 }
 
 .code-block {
     background: var(--hover-color);
-    border: 1px solid rgba(242, 223, 216, 0.08);
-    border-radius: 8px;
-    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
     margin: 10px 0;
     position: relative;
     overflow-x: auto;
 }
 
-.code-block pre {
-    margin: 0;
-    color: var(--text-color);
-}
+.code-block pre { margin: 0; color: var(--text-color); }
 
 .copy-btn {
     position: absolute;
@@ -130,155 +149,20 @@ body {
     background: var(--accent-color);
     border: none;
     color: var(--text-color);
-    padding: 6px 12px;
+    padding: 5px 11px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     transition: background 0.2s;
 }
+.copy-btn:hover { background: #5D537A; }
 
-.copy-btn:hover {
-    background: #5D537A;
-}
-
-/* ПРОФЕССИОНАЛЬНАЯ СТРОКА ВВОДА ЗАПРОСА */
-.input-area-wrapper {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-box {
-    width: 100%;
-    background-color: var(--input-bg);
-    border: 1px solid rgba(242, 223, 216, 0.08);
-    border-radius: 24px;
-    /* Отступы: слева под кнопки файлов и режимов (150px), справа под кнопку отправки (55px) */
-    padding: 14px 55px 14px 150px;
-    color: var(--text-color);
-    font-size: 16px;
-    outline: none;
-    resize: none;
-    max-height: 150px;
-    transition: border-color 0.2s;
-    line-height: 24px;
-}
-
-.input-box:focus {
-    border-color: var(--accent-color);
-}
-
-/* ИКОНКИ УПРАВЛЕНИЯ */
-.icon-img {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    transition: transform 0.1s ease;
-}
-
-.icon-img:hover {
-    transform: scale(1.08);
-}
-
-/* ГРУППА ЭЛЕМЕНТОВ СЛЕВА СТРОКИ ВВОДА */
-.left-controls {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 5;
-}
-
-/* Кнопка привязки файла */
-.btn-files {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-}
-
-/* Блок переключателя fast \ thinking */
-.mode-toggle-container {
-    display: flex;
-    gap: 4px;
-    background: var(--hover-color);
-    padding: 4px;
-    border-radius: 14px;
-}
-
-.mode-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-}
-
-/* Класс активного режима */
-.mode-btn.active {
-    background-color: var(--accent-color);
-}
-
-/* КНОПКА ОТПРАВКИ В ПРАВОЙ СТОРОНЕ */
-.btn-send {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    z-index: 5;
-}
-
-/* Скрытый тег для загрузки файлов */
-#fileInput {
-    display: none;
-}
-
-/* ВЫДЕЛЕННОЕ МЕСТО ДЛЯ БАННЕРА В САМОМ НИЗУ */
-.ad-container-fixed {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-top: 15px;
-    margin-top: 5px;
-    border-top: 1px solid rgba(242, 223, 216, 0.03);
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(5px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Контейнер для кнопки копирования под сообщением */
 .msg-copy-wrapper {
     display: flex;
     justify-content: flex-end;
-    margin-top: 8px;
-    border-top: 1px solid rgba(242, 223, 216, 0.05);
+    margin-top: 6px;
     padding-top: 4px;
+    border-top: 1px solid var(--border);
 }
 
 .btn-msg-copy {
@@ -289,20 +173,115 @@ body {
     align-items: center;
     gap: 5px;
     color: var(--text-color);
-    opacity: 0.6;
+    opacity: 0.45;
     font-size: 12px;
     transition: opacity 0.2s;
     padding: 2px 6px;
     border-radius: 4px;
 }
+.btn-msg-copy:hover { opacity: 1; background: var(--hover-color); }
+.btn-msg-copy img { width: 13px; height: 13px; object-fit: contain; }
 
-.btn-msg-copy:hover {
+.input-area-wrapper {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto 20px;
+    padding: 0 16px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+}
+
+.input-area-wrapper:focus-within {
+    border-color: rgba(78, 68, 102, 0.7);
+}
+
+.input-box {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 15px;
+    outline: none;
+    resize: none;
+    max-height: 160px;
+    line-height: 1.5;
+    padding: 4px 0;
+    align-self: center;
+}
+
+.input-box::placeholder { opacity: 0.4; }
+
+.mode-toggle-container {
+    display: flex;
+    background: var(--hover-color);
+    border-radius: 12px;
+    padding: 3px;
+    gap: 2px;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.mode-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+.mode-btn.active {
+    background-color: var(--accent-color);
     opacity: 1;
-    background-color: var(--hover-color);
 }
 
-.btn-msg-copy img {
-    width: 14px;
-    height: 14px;
-    object-fit: contain;
+.mode-btn:hover:not(.active) {
+    opacity: 0.75;
+    transform: scale(1.03);
 }
+
+.mode-icon { font-size: 14px; line-height: 1; }
+
+.mode-label { font-size: 12px; font-weight: 500; letter-spacing: 0.3px; }
+
+.btn-send {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    background: var(--accent-color);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    transition: background 0.2s, transform 0.15s;
+    align-self: center;
+}
+
+.btn-send:hover {
+    background: #5D537A;
+    transform: scale(1.06);
+}
+
+.btn-send:active { transform: scale(0.95); }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#fileInput { display: none; }
