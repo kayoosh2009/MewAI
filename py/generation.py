@@ -144,7 +144,7 @@ def generate_stream_response(user_id: str, messages: List[Dict[str, str]], mode:
             if "401" in error_str or "Unauthorized" in error_str:
                 print(f"Token {token_id} invalid. Trying next...")
                 retry_count += 1
-                api_token = get_valid_api_key()
+                api_token = get_available_api_key()
                 if not api_token:
                     yield "Error: No valid tokens."
                     return
