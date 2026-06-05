@@ -17,28 +17,22 @@
     </div>
 
     <div class="input-area-wrapper">
-        
         <div class="left-controls">
-            <button class="btn-files" id="fileBtn" title="Attach files">
-                <img src="../icons/files.png" class="icon-img" alt="Files">
-            </button>
-            <input type="file" id="fileInput">
-
+            <!-- Красивый переключатель режимов -->
             <div class="mode-toggle-container">
-                <button class="mode-btn active" id="modeFast" title="Fast Mode">
-                    <img src="../icons/fast.png" class="icon-img" alt="Fast">
-                </button>
-                <button class="mode-btn" id="modeThinking" title="Thinking Mode">
-                    <img src="../icons/thinking.png" class="icon-img" alt="Thinking">
-                </button>
+                <button id="modeFast" class="mode-btn active">Fast</button>
+                <button id="modeThinking" class="mode-btn">Thinking</button>
             </div>
         </div>
-
-        <textarea class="input-box" id="promptInput" rows="1" placeholder="Ask MewAI anything..."></textarea>
-
-        <button class="btn-send" id="sendBtn" title="Send message">
-            <img src="../icons/sent.png" class="icon-img" alt="Send">
+        
+        <textarea id="promptInput" class="input-box" placeholder="Напиши сообщение..." rows="1"></textarea>
+        
+        <button id="sendBtn" class="btn-send">
+            <img src="../icons/send.png" alt="Send" class="icon-img">
         </button>
+        
+        <!-- Скрытый инпут оставлен на случай, если вдруг понадобится, но он больше не виден и не кликабелен -->
+        <input type="file" id="fileInput" hidden>
     </div>
 
     <div class="ad-container-fixed">
