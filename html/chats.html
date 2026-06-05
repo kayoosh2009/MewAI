@@ -13,36 +13,40 @@
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-time" id="userTime">00:00 AM</div>
             <div class="welcome-title">New Conversation</div>
-
-            <div class="ad-container-fixed" id="adContainer">
-                <div id="frame" style="width:320px;margin:auto;z-index:99998;height:auto">
-                    <iframe data-aa='2438199' src='//ad.a-ads.com/2438199/?size=320x100&background_color=211D2D&title_color=F2DFD8&title_hover_color=F2DFD8&text_color=F2DFD8&link_color=F2DFD8&link_hover_color=F2DFD8'
-                            style='border:0;padding:0;width:320px;height:100px;overflow:hidden;display:block;margin:auto'></iframe>
-                </div>
-            </div>
         </div>
     </div>
 
     <div class="input-area-wrapper">
-        <div class="mode-toggle-container">
-            <button class="mode-btn active" id="modeFast" title="Fast Mode">
-                <span class="mode-icon">⚡</span>
-                <span class="mode-label">Fast</span>
+        
+        <div class="left-controls">
+            <button class="btn-files" id="fileBtn" title="Attach files">
+                <img src="../icons/files.png" class="icon-img" alt="Files">
             </button>
-            <button class="mode-btn" id="modeThinking" title="Thinking Mode">
-                <span class="mode-icon">🧠</span>
-                <span class="mode-label">Think</span>
-            </button>
+            <input type="file" id="fileInput">
+
+            <div class="mode-toggle-container">
+                <button class="mode-btn active" id="modeFast" title="Fast Mode">
+                    <img src="../icons/fast.png" class="icon-img" alt="Fast">
+                </button>
+                <button class="mode-btn" id="modeThinking" title="Thinking Mode">
+                    <img src="../icons/thinking.png" class="icon-img" alt="Thinking">
+                </button>
+            </div>
         </div>
 
         <textarea class="input-box" id="promptInput" rows="1" placeholder="Ask MewAI anything..."></textarea>
 
         <button class="btn-send" id="sendBtn" title="Send message">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L12 20M12 4L6 10M12 4L18 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <img src="../icons/sent.png" class="icon-img" alt="Send">
         </button>
     </div>
+
+    <div class="ad-container-fixed">
+        <div id="frame" style="width: 320px;margin: auto;z-index: 99998;height: auto">
+            <iframe data-aa='2438199' src='//ad.a-ads.com/2438199/?size=320x100&background_color=211D2D&title_color=F2DFD8&title_hover_color=F2DFD8&text_color=F2DFD8&link_color=F2DFD8&link_hover_color=F2DFD8'
+                    style='border:0; padding:0; width:320px; height:100px; overflow:hidden;display: block;margin: auto'></iframe>
+        </div>
+        </div>
 
     <script src="../js/chats.js"></script>
 </body>
