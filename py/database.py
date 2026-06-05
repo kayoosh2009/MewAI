@@ -78,7 +78,7 @@ def get_user_chats(user_id: str) -> List[Dict[str, Any]]:
     Retrieves all chat sessions for a specific user.
     """
     try:
-        response = supabase.table("chats").select("*").eq("user_id", user_id).order("created_at", descending=True).execute()
+        response = supabase.table("chats").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
         return response.data if response.data else []
     except Exception as e:
         print(f"Error fetching user chats: {e}")
