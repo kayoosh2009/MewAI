@@ -68,8 +68,15 @@ promptInput.addEventListener('input', function () {
 
 // Добавление блоков сообщений на экран
 function appendMessage(role, text) {
+    // 1. и 2. Убираем приветственный экран и рекламный баннер при первом сообщении
     if (welcomeScreen && chatContainer.contains(welcomeScreen)) {
         welcomeScreen.remove();
+        
+        // Скрываем рекламный баннер, когда начинается переписка
+        const adContainer = document.querySelector('.ad-container-fixed');
+        if (adContainer) {
+            adContainer.style.display = 'none';
+        }
     }
 
     const msgDiv = document.createElement('div');
