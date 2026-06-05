@@ -172,21 +172,24 @@ body {
 
 .input-box {
     width: 100%;
-    background-color: var(--input-bg);
-    border: 1px solid rgba(242, 223, 216, 0.08);
-    border-radius: 24px;
-    /* Увеличены отступы: слева 130px (под кнопки), справа 65px (под отправку) */
-    padding: 14px 65px 14px 130px;
+    background: transparent;
+    border: none;
+    /* ОТСТУПЫ: слева 140px (под переключатель), справа 60px (под кнопку) */
+    padding: 14px 60px 14px 140px;
     color: var(--text-color);
-    font-size: 16px;
+    font-size: 15px;
+    line-height: 1.5;
     outline: none;
     resize: none;
-    max-height: 150px;
-    transition: border-color 0.2s;
-    line-height: 24px;
+    min-height: 48px;
+    max-height: 160px;
+    overscroll-behavior: none;
+    scrollbar-width: none;
 }
 
-.input-box::-webkit-scrollbar { display: none; }
+.input-box::-webkit-scrollbar { 
+    display: none; 
+}
 
 .input-box:focus {
     border-color: var(--accent-color);
