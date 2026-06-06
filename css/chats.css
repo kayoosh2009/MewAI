@@ -175,7 +175,7 @@ body {
     width: 100%;
     background: transparent;
     border: none;
-    padding: 12px 60px 50px 16px;
+    padding: 16px 140px 12px 140px;
     color: var(--text-color);
     font-size: 15px;
     line-height: 1.5;
@@ -218,13 +218,37 @@ body {
     z-index: 5;
 }
 
-/* Кнопка привязки файла */
-.btn-files {
-    background: none;
-    border: none;
-    cursor: pointer;
+/* Правая часть строки ввода */
+.right-controls {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 5;
+}
+
+/* Кнопка отправки в стиле mode-btn */
+.send-btn {
+    background: var(--accent-color) !important;
+    color: var(--text-color) !important;
+    padding: 6px 12px !important;
     display: flex;
     align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+}
+
+.send-btn:hover {
+    background: #5D537A !important;
+    transform: scale(1.05);
+}
+
+.send-btn:active {
+    transform: scale(0.95);
+}
+
+/* Убираем старые стили btn-send */
+.btn-send {
+    display: none;
 }
 
 .mode-toggle-container {

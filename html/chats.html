@@ -27,9 +27,13 @@
         
         <textarea id="promptInput" class="input-box" placeholder="Напиши сообщение..." rows="1"></textarea>
         
-        <button id="sendBtn" class="btn-send">
-            <img src="../icons/send.png" alt="Send" class="icon-img">
-        </button>
+        <div class="right-controls">
+            <div class="mode-toggle-container">
+                <button class="mode-btn send-btn" id="sendBtn" title="Send message">
+                    <img src="../icons/send.png" alt="Send" class="icon-img" style="width: 16px; height: 16px; filter: brightness(0) invert(0.9);">
+                </button>
+            </div>
+        </div>
         
         <!-- Скрытый инпут оставлен на случай, если вдруг понадобится, но он больше не виден и не кликабелен -->
         <input type="file" id="fileInput" hidden>
