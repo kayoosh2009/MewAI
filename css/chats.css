@@ -1,4 +1,4 @@
-/* Цветовая палитра MewAI из idea.txt */
+/* Цветовая палитра MewAI */
 :root {
     --bg-color: #211D2D;
     --text-color: #F2DFD8;
@@ -20,10 +20,10 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Это автоматически прижимает ввод вниз, когда чат пуст */
+    justify-content: space-between;
     overflow: hidden;
     padding: 20px;
-    overscroll-behavior: none; 
+    overscroll-behavior: none;
 }
 
 /* ЦЕНТРАЛЬНАЯ ЗОНА: Вывод истории сообщений */
@@ -37,21 +37,20 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    /* 3. ПОЛНОЕ СКРЫТИЕ ПОЛОСЫ ПРОКРУТКИ ВО ВСЕХ БРАУЗЕРАХ */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-    overscroll-behavior: none; /* Запрет свайпа внутри контейнера */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior: none;
 }
 
 .chat-container::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
 }
 
 .chat-container::-webkit-scrollbar-thumb {
     background: transparent;
 }
 
-/* Приветственный экран (показывается, когда чат пустой) */
+/* Приветственный экран */
 .welcome-screen {
     display: flex;
     flex-direction: column;
@@ -77,9 +76,8 @@ body {
 
 /* Стилизация пузырей сообщений */
 .message {
-    /* 5. РАМКИ ПОДСТРАИВАЮТСЯ ПОД ТЕКСТ */
     max-width: 85%;
-    width: fit-content; 
+    width: fit-content;
     padding: 14px 18px;
     border-radius: 16px;
     font-size: 16px;
@@ -90,14 +88,14 @@ body {
 
 .message.user {
     background-color: var(--accent-color);
-    border: 1px solid rgba(242, 223, 216, 0.15); /* Аккуратная рамка в тон темы */
+    border: 1px solid rgba(242, 223, 216, 0.15);
     align-self: flex-end;
     border-bottom-right-radius: 4px;
 }
 
 .message.assistant {
     background-color: var(--input-bg);
-    border: none; /* Убираем рамку у ИИ */
+    border: none;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
 }
@@ -148,7 +146,7 @@ body {
     background: #5D537A;
 }
 
-/* ПРОФЕССИОНАЛЬНАЯ СТРОКА ВВОДА ЗАПРОСА */
+/* СТРОКА ВВОДА ЗАПРОСА */
 .input-area-wrapper {
     width: 100%;
     max-width: 800px;
@@ -161,8 +159,8 @@ body {
     border-radius: 26px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     transition: all 0.2s ease;
-    padding: 12px 8px; /* Увеличил вертикальные отступы */
-    min-height: 72px; /* Минимальная высота */
+    padding: 12px 8px;
+    min-height: 72px;
 }
 
 .input-area-wrapper:focus-within {
@@ -175,7 +173,7 @@ body {
     width: 100%;
     background: transparent;
     border: none;
-    padding: 16px 140px 12px 140px;
+    padding: 12px 60px 50px 16px;
     color: var(--text-color);
     font-size: 15px;
     line-height: 1.5;
@@ -185,18 +183,18 @@ body {
     max-height: 200px;
     overscroll-behavior: none;
     scrollbar-width: none;
-    align-self: flex-start; /* Прижимаем к верху */
+    align-self: flex-start;
 }
 
-.input-box::-webkit-scrollbar { 
-    display: none; 
+.input-box::-webkit-scrollbar {
+    display: none;
 }
 
 .input-box:focus {
     border-color: var(--accent-color);
 }
 
-/* ИКОНКИ УПРАВЛЕНИЯ */
+/* ИКОНКИ */
 .icon-img {
     width: 24px;
     height: 24px;
@@ -208,42 +206,15 @@ body {
     transform: scale(1.08);
 }
 
+/* ЛЕВАЯ ЧАСТЬ: Кнопки режимов */
 .left-controls {
     position: absolute;
     left: 12px;
-    bottom: 16px; /* Прижимаем к нижнему краю */
+    bottom: 12px;
     display: flex;
     align-items: center;
     gap: 10px;
     z-index: 5;
-}
-
-/* Правая часть строки ввода */
-.right-controls {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-    z-index: 5;
-}
-
-/* Кнопка отправки в стиле mode-btn */
-.send-btn {
-    background: var(--accent-color) !important;
-    color: var(--text-color) !important;
-    padding: 6px 12px !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
-}
-
-.send-btn:hover {
-    background: #5D537A !important;
-    transform: scale(1.05);
-}
-
-.send-btn:active {
-    transform: scale(0.95);
 }
 
 .mode-toggle-container {
@@ -268,22 +239,25 @@ body {
     white-space: nowrap;
 }
 
-.mode-btn:hover { color: var(--text-color); }
+.mode-btn:hover {
+    color: var(--text-color);
+}
+
 .mode-btn.active {
     background-color: var(--accent-color);
     color: var(--text-color);
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-/* КНОПКА ОТПРАВКИ В ПРАВОЙ СТОРОНЕ */
+/* ПРАВАЯ ЧАСТЬ: Кнопка отправки (в стиле mode-btn) */
 .btn-send {
     position: absolute;
     right: 12px;
     bottom: 12px;
-    background: var(--accent-color); /* Цвет как у активной кнопки режима */
+    background: var(--accent-color);
     border: none;
-    border-radius: 12px; /* Закругление как у кнопок Fast/Thinking */
-    padding: 6px 14px;   /* Отступы как у кнопок режимов */
+    border-radius: 12px;
+    padding: 6px 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -297,9 +271,11 @@ body {
     background: #5D537A;
     transform: scale(1.05);
 }
+
 .btn-send:active {
     transform: scale(0.95);
 }
+
 .btn-send .icon-img {
     width: 16px;
     height: 16px;
@@ -307,18 +283,12 @@ body {
     margin: 0;
 }
 
-.btn-send .icon-img {
-    width: 18px;
-    height: 18px;
-    filter: brightness(0) invert(0.9);
-}
-
-/* Скрытый тег для загрузки файлов */
+/* Скрытый input для файлов */
 #fileInput {
     display: none;
 }
 
-/* ВЫДЕЛЕННОЕ МЕСТО ДЛЯ БАННЕРА В САМОМ НИЗУ */
+/* Баннер внизу */
 .ad-container-fixed {
     width: 100%;
     display: flex;
@@ -334,14 +304,13 @@ body {
         opacity: 0;
         transform: translateY(5px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-/* Контейнер для кнопки копирования под сообщением */
+/* Кнопка копирования под сообщением */
 .msg-copy-wrapper {
     display: flex;
     justify-content: flex-end;
