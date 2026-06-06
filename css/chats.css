@@ -155,7 +155,7 @@ body {
     margin: 0 auto;
     position: relative;
     display: flex;
-    align-items: center; /* Кнопки центрированы */
+    align-items: flex-end;
     background: var(--input-bg);
     border: 1px solid rgba(242, 223, 216, 0.08);
     border-radius: 26px;
@@ -175,8 +175,7 @@ body {
     width: 100%;
     background: transparent;
     border: none;
-    /* Отступы: сверху 16px (чтобы текст был выше кнопок), слева 140px, справа 60px */
-    padding: 16px 60px 12px 140px;
+    padding: 12px 50px 40px 140px;
     color: var(--text-color);
     font-size: 15px;
     line-height: 1.5;
@@ -209,12 +208,10 @@ body {
     transform: scale(1.08);
 }
 
-/* ГРУППА ЭЛЕМЕНТОВ СЛЕВА СТРОКИ ВВОДА */
 .left-controls {
     position: absolute;
     left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 12px; /* Прижимаем к нижнему краю */
     display: flex;
     align-items: center;
     gap: 10px;
@@ -263,8 +260,7 @@ body {
 .btn-send {
     position: absolute;
     right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 12px; /* Прижимаем к нижнему краю */
     background: none;
     border: none;
     cursor: pointer;
@@ -274,7 +270,7 @@ body {
 }
 
 .btn-send:hover { background: #5D537A; }
-.btn-send:active { transform: translateY(-50%) scale(0.94); }
+.btn-send:active { transform: scale(0.94); }
 
 .btn-send .icon-img {
     width: 18px;
