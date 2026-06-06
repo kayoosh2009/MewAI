@@ -155,13 +155,14 @@ body {
     margin: 0 auto;
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: center; /* Кнопки центрированы */
     background: var(--input-bg);
     border: 1px solid rgba(242, 223, 216, 0.08);
     border-radius: 26px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     transition: all 0.2s ease;
-    padding: 8px;
+    padding: 12px 8px; /* Увеличил вертикальные отступы */
+    min-height: 64px; /* Минимальная высота */
 }
 
 .input-area-wrapper:focus-within {
@@ -174,17 +175,18 @@ body {
     width: 100%;
     background: transparent;
     border: none;
-    /* ОТСТУПЫ: слева 140px (под переключатель), справа 60px (под кнопку) */
-    padding: 14px 60px 14px 140px;
+    /* Отступы: сверху 16px (чтобы текст был выше кнопок), слева 140px, справа 60px */
+    padding: 16px 60px 12px 140px;
     color: var(--text-color);
     font-size: 15px;
     line-height: 1.5;
     outline: none;
     resize: none;
     min-height: 48px;
-    max-height: 160px;
+    max-height: 200px;
     overscroll-behavior: none;
     scrollbar-width: none;
+    align-self: flex-start; /* Прижимаем к верху */
 }
 
 .input-box::-webkit-scrollbar { 
@@ -210,7 +212,7 @@ body {
 /* ГРУППА ЭЛЕМЕНТОВ СЛЕВА СТРОКИ ВВОДА */
 .left-controls {
     position: absolute;
-    left: 12px;  /* Было 15px */
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -260,7 +262,7 @@ body {
 /* КНОПКА ОТПРАВКИ В ПРАВОЙ СТОРОНЕ */
 .btn-send {
     position: absolute;
-    right: 12px;  /* Было 15px */
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -277,7 +279,7 @@ body {
 .btn-send .icon-img {
     width: 18px;
     height: 18px;
-    filter: brightness(0) invert(0.9); /* Делаем иконку светлой */
+    filter: brightness(0) invert(0.9);
 }
 
 /* Скрытый тег для загрузки файлов */
