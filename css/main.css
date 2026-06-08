@@ -163,69 +163,73 @@ header {
 }
 
 .nav-link:hover {
-  background: var(--hover-color);
-  transform: translateX(3px);
+    background: var(--hover-color);
+    transform: translateX(3px);
 }
 
-/* Разделитель над кнопками внизу */
+/* Контейнер для кнопок внизу */
 .sidebar-footer-nav {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  gap: 8px;
-  padding-top: 18px;
-  margin-top: auto;
-  border-top: 1px solid rgba(242, 223, 216, 0.08);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 10px;
+    padding-top: 20px;
+    margin-top: auto;
+    border-top: 1px solid rgba(242, 223, 216, 0.08);
 }
 
-/* Круглые кнопки-иконки */
+/* Скруглённые квадратики (rounded squares) */
 .icon-nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: rgba(78, 68, 102, 0.35);
-  border: 1px solid rgba(242, 223, 216, 0.05);
-  border-radius: 50%;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(78, 68, 102, 0.4);
+    border: 1px solid rgba(242, 223, 216, 0.06);
+    border-radius: 14px;
+    /* <-- Скругление! */
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(4px);
 }
 
 .icon-nav-btn img {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  opacity: 0.85;
-  transition: all 0.25s ease;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    opacity: 0.85;
+    transition: all 0.25s ease;
 }
 
 /* Hover для обычных кнопок */
 .icon-nav-btn:hover {
-  background: var(--accent-color);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: var(--accent-color);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .icon-nav-btn:hover img {
-  opacity: 1;
-  transform: scale(1.1);
+    opacity: 1;
+    transform: scale(1.15);
 }
 
 /* 🔴 Красная кнопка Logout */
 .icon-nav-btn.logout {
-  background: rgba(255, 80, 80, 0.15);
-  border: 1px solid rgba(255, 100, 100, 0.25);
+    background: rgba(230, 57, 70, 0.8);
+    /* Красный фон */
+    border: 1px solid rgba(255, 100, 100, 0.4);
 }
 
 .icon-nav-btn.logout:hover {
-  background: #e63946;
-  box-shadow: 0 4px 16px rgba(230, 57, 70, 0.5);
+    background: #c1121f;
+    /* Более тёмный красный при наведении */
+    box-shadow: 0 6px 20px rgba(193, 18, 31, 0.6);
 }
 
 .icon-nav-btn.logout:hover img {
-  filter: brightness(0) invert(1);
-  opacity: 1;
+    filter: brightness(0) invert(1);
+    opacity: 1;
+    transform: scale(1.15);
 }
