@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MewAI - Dashboard</title>
     <link rel="stylesheet" href="/css/main.css">
 </head>
+
 <body>
 
     <header>
@@ -20,23 +22,37 @@
 
     <div class="overlay" id="screenOverlay"></div>
 
-    <div class="sidebar" id="leftSidebar">
-        <div class="sidebar-header">Saved Conversations</div>
-        
-        <div class="chats-container" id="chatsListWrapper">
-            <div class="no-chats">Loading conversation history...</div>
+    <aside id="leftSidebar" class="sidebar">
+        <div class="sidebar-header">MewAI - Dashboard</div>
+
+        <!-- Заголовок списка чатов -->
+        <div class="chats-header">Saved Conversations</div>
+
+        <!-- Список чатов (занимает всё свободное место) -->
+        <div id="chatsListWrapper" class="chats-container">
+            Loading conversation history...
         </div>
 
+        <!-- Навигационные иконки ВНИЗУ -->
         <nav class="sidebar-footer-nav">
-            <a href="profile.html" class="nav-link">Profile</a>
-            <a href="stats.html" class="nav-link">Statistics</a>
-            <a href="donate.html" class="nav-link">Support</a>
-            <button id="logoutBtn" class="nav-link" style="cursor: pointer; border: none; background: var(--accent-color);">Logout</button>
+            <a href="profile.html" class="icon-nav-btn" title="Profile">
+                <img src="../icons/profile.png" alt="Profile">
+            </a>
+            <a href="stats.html" class="icon-nav-btn" title="Statistics">
+                <img src="../icons/statistic.png" alt="Statistics">
+            </a>
+            <a href="donate.html" class="icon-nav-btn" title="Support">
+                <img src="../icons/support.png" alt="Support">
+            </a>
+            <button id="logoutBtn" class="icon-nav-btn logout" title="Logout">
+                <img src="../icons/logout.png" alt="Logout">
+            </button>
         </nav>
-    </div>
+    </aside>
 
     <iframe src="chats.html" class="main-content-frame" id="chatIframe"></iframe>
 
-        <script src="../js/main.js"></script>
+    <script src="../js/main.js"></script>
 </body>
+
 </html>
