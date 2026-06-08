@@ -166,3 +166,66 @@ header {
   background: var(--hover-color);
   transform: translateX(3px);
 }
+
+/* Разделитель над кнопками внизу */
+.sidebar-footer-nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 8px;
+  padding-top: 18px;
+  margin-top: auto;
+  border-top: 1px solid rgba(242, 223, 216, 0.08);
+}
+
+/* Круглые кнопки-иконки */
+.icon-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(78, 68, 102, 0.35);
+  border: 1px solid rgba(242, 223, 216, 0.05);
+  border-radius: 50%;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(4px);
+}
+
+.icon-nav-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  opacity: 0.85;
+  transition: all 0.25s ease;
+}
+
+/* Hover для обычных кнопок */
+.icon-nav-btn:hover {
+  background: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.icon-nav-btn:hover img {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* 🔴 Красная кнопка Logout */
+.icon-nav-btn.logout {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 100, 100, 0.25);
+}
+
+.icon-nav-btn.logout:hover {
+  background: #e63946;
+  box-shadow: 0 4px 16px rgba(230, 57, 70, 0.5);
+}
+
+.icon-nav-btn.logout:hover img {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
